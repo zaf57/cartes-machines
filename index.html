@@ -684,6 +684,17 @@
                 break;
             }
 
+            // Séparateur ";" lu comme un chiffre ("149582;1149582") :
+            // un des deux nombres contient l'autre avec un caractère en trop.
+            if (nombres.length >= 3 && Math.abs(dernier.length - avantDernier.length) === 1) {
+                const court = dernier.length < avantDernier.length ? dernier : avantDernier;
+                const long = court === dernier ? avantDernier : dernier;
+                if (long.endsWith(court) || long.startsWith(court)) {
+                    infos.spec = court;
+                    break;
+                }
+            }
+
             // Séparateur non lu : "149582149582" -> "149582".
             if (dernier.length >= 10 && dernier.length % 2 === 0) {
                 const moitie = dernier.length / 2;
