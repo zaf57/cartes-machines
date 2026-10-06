@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2933">
+<title>Carte Machine</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<style>
+  :root {
+    --fond: #f3f4f6;
+    --carte: #ffffff;
+    --texte: #1f2933;
+    --doux: #6b7280;
+    --bord: #d1d5db;
+    --accent: #ea7a12;
+    --accent-texte: #ffffff;
+    --ok: #15803d;
+    --alerte: #b45309;
+    --erreur: #b91c1c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fond: #111418;
+      --carte: #1c2128;
+      --texte: #e5e7eb;
+      --doux: #9ca3af;
+      --bord: #374151;
+      --ok: #4ade80;
+      --alerte: #fbbf24;
+      --erreur: #f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--fond);
+    color: var(--texte);
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    background: #1f2933; color: #fff;
+  }
+  header h1 { margin: 0; font-size: 1.15rem; font-weight: 600; }
+  header button {
+    background: none; border: 0; color: #fff; font-size: 1.4rem; padding: 4px 8px; cursor: pointer;
+  }
+  main { max-width: 520px; margin: 0 auto; padding: 16px; }
+  section[hidden] { display: none !important; }
+  .bloc {
+    background: var(--carte); border: 1px solid var(--bord); border-radius: 12px; padding: 16px; margin-bottom: 16px;
+  }
+  .gros-bouton {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 200px;
+    background: var(--accent); color: var(--accent-texte);
+    border: 0; border-radius: 16px; font-size: 1.3rem; font-weight: 600; cursor: pointer;
+  }
+  .gros-bouton span { font-size: 3rem; }
+  .bouton {
+    display: block; width: 100%; padding: 14px; margin-top: 10px;
+    border-radius: 10px; border: 1px solid var(--bord);
+    background: var(--carte); color: var(--texte); font-size: 1rem; font-weight: 600; cursor: pointer;
+  }
+  .bouton.principal { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+  .bouton:disabled { opacity: .6; cursor: wait; }
+  .aide { color: var(--doux); font-size: .9rem; text-align: center; margin: 12px 0 0; }
+  img.apercu { width: 100%; border-radius: 10px; display: block; max-height: 260px; object-fit: contain; background: #000; }
+  .progression { height: 8px; background: var(--bord); border-radius: 4px; overflow: hidden; margin: 14px 0 8px; }
+  .progression div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .statut { text-align: center; color: var(--doux); margin: 0; }
+  .champ { margin-bottom: 14px; }
+  .champ label { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; color: var(--doux); margin-bottom: 4px; }
+  .champ input {
+    width: 100%; padding: 12px; font-size: 1.25rem; font-weight: 600; font-family: ui-monospace, Consolas, monospace;
+    border: 2px solid var(--bord); border-radius: 8px; background: var(--fond); color: var(--texte);
+  }
+  .champ.trouve input { border-color: var(--ok); }
+  .champ.manquant input { border-color: var(--alerte); }
+  .badge { font-size: .75rem; font-weight: 600; }
+  .champ.trouve .badge { color: var(--ok); }
+  .champ.manquant .badge { color: var(--alerte); }
+  .message { padding: 12px; border-radius: 8px; margin-top: 12px; font-weight: 500; }
+  .message.erreur { background: color-mix(in srgb, var(--erreur) 15%, transparent); color: var(--erreur); }
+  .message.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+  details { margin-top: 12px; color: var(--doux); font-size: .85rem; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: .75rem; background: var(--fond); padding: 8px; border-radius: 6px; }
+  .resume { font-size: 1.05rem; line-height: 1.7; }
+  .resume b { font-family: ui-monospace, Consolas, monospace; }
+  .grand-ok { font-size: 3rem; text-align: center; margin: 0; }
+  dialog {
+    width: min(480px, calc(100% - 32px)); border: 1px solid var(--bord); border-radius: 12px;
+    background: var(--carte); color: var(--texte); padding: 20px;
+  }
+  dialog::backdrop { background: rgba(0,0,0,.5); }
+  dialog h2 { margin-top: 0; font-size: 1.1rem; }
+  dialog .champ input { font-size: 1rem; font-weight: 400; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📷 Carte Machine</h1>
+  <button id="btnReglages" title="Réglages" aria-label="Réglages">⚙️</button>
+</header>
+
+<main>
+
+  <!-- 1. PHOTO -->
+  <section id="ecranPhoto">
+    <label class="gros-bouton" for="inputPhoto">
+      <span>📸</span>
+      Prendre la photo
+    </label>
+    <input type="file" id="inputPhoto" accept="image/*" capture="environment" hidden>
+    <p class="aide">Cadrez la fiche « Curing Specification » en entier,<br>en évitant les reflets.</p>
+    <button class="bouton" id="btnManuel">✏️ Saisir à la main</button>
+  </section>
+
+  <!-- 2. ANALYSE -->
+  <section id="ecranAnalyse" hidden>
+    <div class="bloc">
+      <img id="apercu" class="apercu" alt="Photo de la carte">
+      <div class="progression"><div id="barre"></div></div>
+      <p class="statut" id="statut">Préparation…</p>
+    </div>
+  </section>
+
+  <!-- 3. VÉRIFICATION -->
+  <section id="ecranVerif" hidden>
+    <form class="bloc" id="formVerif" autocomplete="off">
+      <div class="champ" data-champ="presse">
+        <label for="f-presse">Presse <span class="badge"></span></label>
+        <input id="f-presse" name="presse" placeholder="VL 136 G" required>
+      </div>
+      <div class="champ" data-champ="spec">
+        <label for="f-spec">Specification Code (fin) <span class="badge"></span></label>
+        <input id="f-spec" name="spec" inputmode="numeric" placeholder="149582">
+      </div>
+      <div class="champ" data-champ="bladderCode">
+        <label for="f-bladderCode">BladderCode <span class="badge"></span></label>
+        <input id="f-bladderCode" name="bladderCode" inputmode="numeric" placeholder="0702">
+      </div>
+      <div class="champ" data-champ="bladderType">
+        <label for="f-bladderType">BladderType <span class="badge"></span></label>
+        <input id="f-bladderType" name="bladderType" placeholder="TU 5 V1">
+      </div>
+
+      <button type="submit" class="bouton principal" id="btnEnregistrer">✅ Enregistrer</button>
+      <button type="button" class="bouton" id="btnRecommencer">↺ Reprendre une photo</button>
+      <div id="messageVerif"></div>
+
+      <details id="detailsTexte">
+        <summary>Texte lu sur la photo</summary>
+        <pre id="texteBrut"></pre>
+      </details>
+    </form>
+  </section>
+
+  <!-- 4. TERMINÉ -->
+  <section id="ecranOK" hidden>
+    <div class="bloc">
+      <p class="grand-ok">✅</p>
+      <div class="resume" id="resume"></div>
+      <div class="message ok">Enregistré. La pop-up s'affichera sur le PC d'ici une à deux minutes.</div>
+    </div>
+    <button class="bouton principal" id="btnNouvelle">📸 Nouvelle carte</button>
+  </section>
+
+</main>
+
+<!-- RÉGLAGES -->
+<dialog id="dlgReglages">
+  <form method="dialog" id="formReglages">
+    <h2>⚙️ Réglages GitHub</h2>
+    <div class="champ">
+      <label for="r-compte">Compte GitHub</label>
+      <input id="r-compte" name="compte" placeholder="mon-compte" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="champ">
+      <label for="r-depot">Dépôt</label>
+      <input id="r-depot" name="depot" placeholder="cartes-machines" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="champ">
+      <label for="r-branche">Branche</label>
+      <input id="r-branche" name="branche" placeholder="main" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="champ">
+      <label for="r-fichier">Fichier de données</label>
+      <input id="r-fichier" name="fichier" placeholder="presses.json" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="champ">
+      <label for="r-token">Token (Contents : lecture et écriture)</label>
+      <input id="r-token" name="token" type="password" placeholder="github_pat_…" autocapitalize="off" spellcheck="false">
+    </div>
+    <p class="aide">Ces réglages restent uniquement sur ce téléphone.</p>
+    <button class="bouton principal" value="ok">Enregistrer</button>
+    <button class="bouton" value="annuler" formnovalidate>Annuler</button>
+  </form>
+</dialog>
+
+<script>
+(function () {
+
+    'use strict';
+
+    // =========================
+    // RÉGLAGES (stockés sur le téléphone)
+    // =========================
+
+    const CLE_REGLAGES = 'carteMachine.reglages';
+
+    const REGLAGES_PAR_DEFAUT = {
+        compte: '',
+        depot: 'cartes-machines',
+        branche: 'main',
+        fichier: 'presses.json',
+        token: ''
+    };
+
+    function lireReglages() {
+        try {
+            const r = JSON.parse(localStorage.getItem(CLE_REGLAGES) || '{}');
+            return Object.assign({}, REGLAGES_PAR_DEFAUT, r);
+        } catch (e) {
+            return Object.assign({}, REGLAGES_PAR_DEFAUT);
+        }
+    }
+
+    function ecrireReglages(r) {
+        try {
+            localStorage.setItem(CLE_REGLAGES, JSON.stringify(r));
+        } catch (e) {
+            alert('Impossible d\'enregistrer les réglages sur ce navigateur.');
+        }
+    }
+
+    function reglagesComplets(r) {
+        return r.compte && r.depot && r.branche && r.fichier && r.token;
+    }
+
+    // =========================
+    // NAVIGATION ENTRE ÉCRANS
+    // =========================
+
+    const ecrans = ['ecranPhoto', 'ecranAnalyse', 'ecranVerif', 'ecranOK'];
+
+    function afficher(id) {
+        ecrans.forEach(function (e) {
+            document.getElementById(e).hidden = (e !== id);
+        });
+        window.scrollTo(0, 0);
+    }
+
+    // =========================
+    // PRÉPARATION DE L'IMAGE
+    // =========================
+
+    // Copie une zone de la photo (coordonnées de la photo d'origine)
+    // dans un canvas agrandi "echelle" fois.
+    function decouper(image, zone, echelle) {
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(zone.w * echelle);
+        canvas.height = Math.round(zone.h * echelle);
+
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(image, zone.x, zone.y, zone.w, zone.h, 0, 0, canvas.width, canvas.height);
+
+        return canvas;
+    }
+
+    // Noir et blanc avec un seuil calculé automatiquement (méthode d'Otsu) :
+    // fait ressortir le texte gris clair sur fond gris (BladderCode...).
+    function noirEtBlanc(canvas) {
+
+        const ctx = canvas.getContext('2d');
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const d = pixels.data;
+        const n = canvas.width * canvas.height;
+
+        const gris = new Uint8Array(n);
+        const histo = new Array(256).fill(0);
+
+        for (let i = 0, j = 0; j < n; i += 4, j++) {
+            const g = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0;
+            gris[j] = g;
+            histo[g]++;
+        }
+
+        let somme = 0;
+        for (let t = 0; t < 256; t++) somme += t * histo[t];
+
+        let sommeFond = 0, poidsFond = 0, meilleur = 0, seuil = 128;
+
+        for (let t = 0; t < 256; t++) {
+            poidsFond += histo[t];
+            if (!poidsFond) continue;
+            const poidsTexte = n - poidsFond;
+            if (!poidsTexte) break;
+            sommeFond += t * histo[t];
+            const ecart = sommeFond / poidsFond - (somme - sommeFond) / poidsTexte;
+            const variance = poidsFond * poidsTexte * ecart * ecart;
+            if (variance > meilleur) { meilleur = variance; seuil = t; }
+        }
+
+        for (let i = 0, j = 0; j < n; i += 4, j++) {
+            const v = gris[j] < seuil ? 0 : 255;
+            d[i] = d[i + 1] = d[i + 2] = v;
+        }
+
+        ctx.putImageData(pixels, 0, 0);
+
+        return canvas;
+    }
+
+    // Zone autour d'un mot repère (ex : "Bladder"), exprimée en hauteurs
+    // de texte, et ramenée aux coordonnées de la photo d'origine.
+    function zoneAutour(mot, echelle, image, gauche, haut, largeur, hauteur) {
+
+        const b = mot.bbox;
+        const h = (b.y1 - b.y0) / echelle;
+        const x0 = b.x0 / echelle;
+        const y0 = b.y0 / echelle;
+
+        const x = Math.max(0, x0 - gauche * h);
+        const y = Math.max(0, y0 - haut * h);
+
+        return {
+            x: x,
+            y: y,
+            w: Math.min(image.width - x, largeur * h),
+            h: Math.min(image.height - y, hauteur * h),
+            hauteurTexte: h
+        };
+    }
+
+    // =========================
+    // EXTRACTION DES INFORMATIONS
+    // =========================
+
+    function extraireInfos(texte) {
+
+        const infos = { presse: '', spec: '', bladderCode: '', bladderType: '' };
+
+        const lignes = texte
+            .split('\n')
+            .map(function (l) { return l.trim(); })
+            .filter(Boolean);
+
+        // --- Presse : "VL 136 G" -------------------------------------
+        // L'OCR confond parfois L avec I, 1 ou |.
+        let m = texte.match(/\bV\s?[LI1|]\s*(\d{2,4})\s*([GD])\b/i);
+
+        if (!m) {
+            // Autre préfixe de deux lettres (ex : "VK 12 D").
+            m = texte.match(/\b([A-Z]{2})\s*(\d{2,4})\s*([GD])\b/);
+            if (m) {
+                infos.presse = m[1] + ' ' + m[2] + ' ' + m[3].toUpperCase();
+            }
+        } else {
+            infos.presse = 'VL ' + m[1] + ' ' + m[2].toUpperCase();
+        }
+
+        // --- Specification Code : dernier nombre de la ligne ---------
+        // Format : 971001559682;CA;4;149582;149582
+        // Les deux derniers nombres sont identiques sur la carte : si
+        // l'OCR les lit pareil, c'est une lecture sûre. Sinon on garde la
+        // première lecture plausible.
+        let specPlausible = '';
+
+        for (const ligne of lignes) {
+
+            if (!/\d{8,}\s*[;:,.]\s*[A-Z0-9]{1,3}\s*[;:,.]/i.test(ligne)) continue;
+
+            const nombres = ligne.match(/\d{4,}/g);
+            if (!nombres || nombres.length < 2) continue;
+
+            let dernier = nombres[nombres.length - 1];
+            const avantDernier = nombres[nombres.length - 2];
+
+            if (nombres.length >= 3 && dernier === avantDernier) {
+                infos.spec = dernier;
+                break;
+            }
+
+            // Séparateur non lu : "149582149582" -> "149582".
+            if (dernier.length >= 10 && dernier.length % 2 === 0) {
+                const moitie = dernier.length / 2;
+                if (dernier.slice(0, moitie) === dernier.slice(moitie)) {
+                    infos.spec = dernier.slice(moitie);
+                    break;
+                }
+            }
+
+            if (!specPlausible && dernier.length >= 5 && dernier.length <= 7) {
+                specPlausible = dernier;
+            }
+        }
+
+        if (!infos.spec) infos.spec = specPlausible;
+
+        // --- BladderCode : "0702" ------------------------------------
+        m = texte.match(/Bladder\s*C[o0]de?[^\d\n]{0,15}(\d{3,5})\b/i);
+
+        if (m) {
+            infos.bladderCode = m[1];
+        } else {
+            // Libellés et valeurs parfois lus sur des lignes séparées
+            // (valeurs APRÈS les libellés) : premier nombre de 4 chiffres.
+            const idx = lignes.findIndex(function (l) { return /Bladder/i.test(l); });
+            if (idx !== -1) {
+                for (let i = idx; i <= Math.min(lignes.length - 1, idx + 4); i++) {
+                    const n = lignes[i].match(/\b(\d{4})\b/);
+                    if (n) { infos.bladderCode = n[1]; break; }
+                }
+            }
+        }
+
+        // --- BladderType : "TU 5 V1" ---------------------------------
+        // L'OCR confond 5/S, 0/O et 1/I/l.
+        m = texte.match(/\bT\s?U\s*([0-9SOo]{1,2})\s*[Vv]\s*([0-9IilL|])(?![0-9A-Za-z])/);
+
+        if (m) {
+            // "5S" (un 5 lu deux fois) -> on garde les vrais chiffres.
+            const taille = /\d/.test(m[1])
+                ? m[1].replace(/\D/g, '')
+                : m[1].replace(/S/g, '5').replace(/[Oo]/g, '0');
+            const version = m[2].replace(/[IilL|]/g, '1');
+            infos.bladderType = 'TU ' + taille + ' V' + version;
+        }
+
+        return infos;
+    }
+
+    // Accessible depuis la console pour les tests.
+    window.extraireInfos = extraireInfos;
+
+    // =========================
+    // LECTURE DE LA PHOTO
+    // =========================
+
+    const barre = document.getElementById('barre');
+    const statut = document.getElementById('statut');
+
+    let lecteur = null;
+
+    async function obtenirLecteur() {
+        if (!lecteur) lecteur = await Tesseract.createWorker('eng');
+        return lecteur;
+    }
+
+    async function lire(canvas, modeLecture) {
+        const w = await obtenirLecteur();
+        // 11 = texte éparpillé (photo entière), 6 = bloc de texte (zone zoomée)
+        await w.setParameters({ tessedit_pageseg_mode: modeLecture });
+        const r = await w.recognize(canvas);
+        return r.data;
+    }
+
+    function etape(pourcent, texte) {
+        barre.style.width = pourcent + '%';
+        statut.textContent = texte;
+    }
+
+    // Complète "infos" avec les champs trouvés dans "nouvelles"
+    // sans écraser ce qui a déjà été lu.
+    function completer(infos, nouvelles, champs) {
+        (champs || Object.keys(infos)).forEach(function (c) {
+            if (!infos[c] && nouvelles[c]) infos[c] = nouvelles[c];
+        });
+    }
+
+    function complet(infos) {
+        return infos.presse && infos.spec && infos.bladderCode && infos.bladderType;
+    }
+
+    async function analyserPhoto(fichier) {
+
+        afficher('ecranAnalyse');
+
+        document.getElementById('apercu').src = URL.createObjectURL(fichier);
+
+        const infos = { presse: '', spec: '', bladderCode: '', bladderType: '' };
+        const textes = [];
+
+        try {
+            etape(5, 'Chargement du lecteur…');
+
+            const image = await createImageBitmap(fichier);
+            await obtenirLecteur();
+
+            const echelle = Math.min(3200 / Math.max(image.width, image.height), 2.5);
+
+            // Essais successifs sur la photo entière ; après chacun, on
+            // zoome sur les zones repérées pour les champs encore manquants.
+            // On s'arrête dès que les 4 informations sont trouvées.
+            const essaisPhoto = [
+                { nom: 'Lecture de la carte…', preparer: function (c) { return c; } },
+                { nom: 'Lecture en noir et blanc…', preparer: noirEtBlanc }
+            ];
+
+            for (let i = 0; i < essaisPhoto.length && !complet(infos); i++) {
+
+                etape(15 + i * 40, essaisPhoto[i].nom);
+
+                const entiere = essaisPhoto[i].preparer(
+                    decouper(image, { x: 0, y: 0, w: image.width, h: image.height }, echelle)
+                );
+
+                const lecture = await lire(entiere, '11');
+                textes.push(lecture.text);
+                completer(infos, extraireInfos(lecture.text));
+
+                const mots = lecture.words || [];
+                const lignesLues = lecture.lines || [];
+
+                // --- Zoom sur BladderCode / BladderType ---------------
+                // Repère 1 : le grand "VL 136 G" bleu, presque toujours lu,
+                // situé juste sous le bloc Bladder sur toutes les cartes.
+                // Repère 2 : le mot "Bladder" lui-même, s'il a été lu.
+                const zonesBladder = [];
+
+                const lignePresse = lignesLues.find(function (l) {
+                    return /V\s?[LI1|]\s*\d{2,4}\s*[GD]/i.test(l.text);
+                });
+
+                if (lignePresse) {
+                    const b = lignePresse.bbox;
+                    const x0 = b.x0 / echelle, y0 = b.y0 / echelle;
+                    const L = (b.x1 - b.x0) / echelle, H = (b.y1 - b.y0) / echelle;
+                    const x = Math.max(0, x0 - 0.05 * L);
+                    const y = Math.max(0, y0 - 2.2 * H);
+                    zonesBladder.push({
+                        x: x, y: y,
+                        w: Math.min(image.width - x, 1.25 * L),
+                        h: Math.min(image.height - y, 1.5 * H),
+                        hauteurTexte: H * 0.2
+                    });
+                }
+
+                mots.filter(function (m) { return /bladder/i.test(m.text); })
+                    .slice(0, 1)
+                    .forEach(function (m) {
+                        zonesBladder.push(zoneAutour(m, echelle, image, 1, 2.5, 30, 6.5));
+                    });
+
+                for (const zone of zonesBladder) {
+
+                    if (infos.bladderCode && infos.bladderType) break;
+
+                    etape(30 + i * 40, 'Zoom sur BladderCode…');
+
+                    const agrandi = Math.min(4, Math.max(1, 90 / zone.hauteurTexte));
+
+                    for (const mode of ['6', '11']) {
+                        if (infos.bladderCode && infos.bladderType) break;
+                        const zoom = await lire(noirEtBlanc(decouper(image, zone, agrandi)), mode);
+                        textes.push(zoom.text);
+                        completer(infos, extraireInfos(zoom.text), ['bladderCode', 'bladderType']);
+                    }
+                }
+
+                // --- Zoom sur le Specification Code -------------------
+                const reperesSpec = mots.filter(function (m) { return /specif/i.test(m.text); });
+
+                for (const repere of reperesSpec.slice(0, 2)) {
+
+                    if (infos.spec) break;
+
+                    etape(35 + i * 40, 'Zoom sur le Specification Code…');
+
+                    const zone = zoneAutour(repere, echelle, image, 1, 0.5, 32, 3.5);
+                    const agrandi = Math.min(4, Math.max(1, 70 / zone.hauteurTexte));
+
+                    for (const nb of [false, true]) {
+                        if (infos.spec) break;
+                        let zoom = decouper(image, zone, agrandi);
+                        if (nb) zoom = noirEtBlanc(zoom);
+                        const lu = await lire(zoom, '6');
+                        textes.push(lu.text);
+                        completer(infos, extraireInfos(lu.text), ['spec']);
+                    }
+                }
+            }
+
+            etape(100, 'Terminé');
+
+        } catch (e) {
+            console.error(e);
+            afficherVerification(
+                infos,
+                textes.join('\n-----\n'),
+                'La lecture automatique a échoué (' + e.message + '). Complétez à la main.'
+            );
+            return;
+        }
+
+        afficherVerification(infos, textes.join('\n-----\n'));
+    }
+
+    // =========================
+    // ÉCRAN DE VÉRIFICATION
+    // =========================
+
+    const formVerif = document.getElementById('formVerif');
+    const messageVerif = document.getElementById('messageVerif');
+
+    function afficherMessage(conteneur, texte, type) {
+        conteneur.innerHTML = '';
+        if (!texte) return;
+        const div = document.createElement('div');
+        div.className = 'message ' + type;
+        div.textContent = texte;
+        conteneur.appendChild(div);
+    }
+
+    function afficherVerification(infos, texteBrut, erreur) {
+
+        Object.keys(infos).forEach(function (cle) {
+
+            const bloc = formVerif.querySelector('[data-champ="' + cle + '"]');
+            const input = bloc.querySelector('input');
+            const badge = bloc.querySelector('.badge');
+
+            input.value = infos[cle] || '';
+
+            bloc.classList.remove('trouve', 'manquant');
+
+            if (texteBrut === null) {
+                badge.textContent = '';
+            } else if (infos[cle]) {
+                bloc.classList.add('trouve');
+                badge.textContent = '✓ lu — à vérifier';
+            } else {
+                bloc.classList.add('manquant');
+                badge.textContent = '⚠ non trouvé';
+            }
+        });
+
+        document.getElementById('texteBrut').textContent = texteBrut || '(aucun texte)';
+        document.getElementById('detailsTexte').hidden = (texteBrut === null);
+
+        afficherMessage(messageVerif, erreur || '', 'erreur');
+
+        afficher('ecranVerif');
+    }
+
+    function normaliserFiche(f) {
+
+        const presse = f.presse.toUpperCase().replace(/\s+/g, ' ').trim();
+
+        return {
+            cle: presse.replace(/\s+/g, ''),
+            presse: presse,
+            spec: f.spec.trim(),
+            bladderCode: f.bladderCode.trim(),
+            bladderType: f.bladderType.toUpperCase().replace(/\s+/g, ' ').trim(),
+            date: new Date().toISOString()
+        };
+    }
+
+    formVerif.addEventListener('submit', async function (ev) {
+
+        ev.preventDefault();
+
+        const donnees = Object.fromEntries(new FormData(formVerif));
+        const fiche = normaliserFiche(donnees);
+
+        if (!fiche.cle) {
+            afficherMessage(messageVerif, 'Le nom de la presse est obligatoire.', 'erreur');
+            return;
+        }
+
+        const reglages = lireReglages();
+
+        if (!reglagesComplets(reglages)) {
+            afficherMessage(messageVerif, 'Complétez d\'abord les réglages GitHub (⚙️ en haut à droite).', 'erreur');
+            ouvrirReglages();
+            return;
+        }
+
+        const bouton = document.getElementById('btnEnregistrer');
+        bouton.disabled = true;
+        bouton.textContent = '⏳ Envoi…';
+        afficherMessage(messageVerif, '', '');
+
+        try {
+            await enregistrerSurGitHub(fiche, reglages);
+            afficherConfirmation(fiche);
+        } catch (e) {
+            console.error(e);
+            afficherMessage(messageVerif, 'Échec de l\'enregistrement : ' + e.message, 'erreur');
+        } finally {
+            bouton.disabled = false;
+            bouton.textContent = '✅ Enregistrer';
+        }
+    });
+
+    function afficherConfirmation(fiche) {
+
+        const resume = document.getElementById('resume');
+        resume.innerHTML = '';
+
+        [
+            ['Presse', fiche.presse],
+            ['Spec', fiche.spec],
+            ['BladderCode', fiche.bladderCode],
+            ['BladderType', fiche.bladderType]
+        ].forEach(function (ligne) {
+            const div = document.createElement('div');
+            div.append(ligne[0] + ' : ');
+            const b = document.createElement('b');
+            b.textContent = ligne[1] || '—';
+            div.appendChild(b);
+            resume.appendChild(div);
+        });
+
+        afficher('ecranOK');
+    }
+
+    // =========================
+    // ENREGISTREMENT SUR GITHUB
+    // =========================
+
+    function base64VersTexte(b64) {
+        const binaire = atob(b64.replace(/\s/g, ''));
+        const octets = Uint8Array.from(binaire, function (c) { return c.charCodeAt(0); });
+        return new TextDecoder().decode(octets);
+    }
+
+    function texteVersBase64(texte) {
+        const octets = new TextEncoder().encode(texte);
+        let binaire = '';
+        for (let i = 0; i < octets.length; i += 0x8000) {
+            binaire += String.fromCharCode.apply(null, octets.subarray(i, i + 0x8000));
+        }
+        return btoa(binaire);
+    }
+
+    async function enregistrerSurGitHub(fiche, r) {
+
+        const chemin = r.fichier.split('/').map(encodeURIComponent).join('/');
+        const url = 'https://api.github.com/repos/' +
+            encodeURIComponent(r.compte) + '/' + encodeURIComponent(r.depot) +
+            '/contents/' + chemin;
+
+        const entetes = {
+            'Authorization': 'Bearer ' + r.token,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28'
+        };
+
+        // Deux essais : si quelqu'un a modifié le fichier entre la lecture
+        // et l'écriture, GitHub refuse (conflit) et on recommence.
+        for (let essai = 0; essai < 3; essai++) {
+
+            let sha;
+            let donnees = { maj: null, presses: {}, historique: [] };
+
+            const lecture = await fetch(
+                url + '?ref=' + encodeURIComponent(r.branche),
+                { headers: entetes, cache: 'no-store' }
+            );
+
+            if (lecture.status === 200) {
+                const json = await lecture.json();
+                sha = json.sha;
+                try {
+                    donnees = JSON.parse(base64VersTexte(json.content));
+                } catch (e) {
+                    throw new Error('le fichier ' + r.fichier + ' sur GitHub n\'est pas un JSON valide');
+                }
+            } else if (lecture.status !== 404) {
+                throw new Error(await messageErreurGitHub(lecture));
+            }
+
+            donnees.presses = donnees.presses || {};
+            donnees.historique = Array.isArray(donnees.historique) ? donnees.historique : [];
+
+            const entree = {
+                presse: fiche.presse,
+                spec: fiche.spec,
+                bladderCode: fiche.bladderCode,
+                bladderType: fiche.bladderType,
+                date: fiche.date
+            };
+
+            donnees.presses[fiche.cle] = entree;
+            donnees.historique.unshift(Object.assign({ cle: fiche.cle }, entree));
+            donnees.historique = donnees.historique.slice(0, 100);
+            donnees.maj = fiche.date;
+
+            const corps = {
+                message: 'Carte ' + fiche.presse + ' (' + fiche.spec + ')',
+                content: texteVersBase64(JSON.stringify(donnees, null, 2) + '\n'),
+                branch: r.branche
+            };
+            if (sha) corps.sha = sha;
+
+            const ecriture = await fetch(url, {
+                method: 'PUT',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, entetes),
+                body: JSON.stringify(corps)
+            });
+
+            if (ecriture.ok) return;
+
+            if (ecriture.status === 409 || ecriture.status === 422) continue;
+
+            throw new Error(await messageErreurGitHub(ecriture));
+        }
+
+        throw new Error('conflit persistant avec GitHub, réessayez.');
+    }
+
+    async function messageErreurGitHub(reponse) {
+
+        let detail = '';
+        try { detail = (await reponse.json()).message || ''; } catch (e) { /* vide */ }
+
+        if (reponse.status === 401) return 'token refusé (401). Vérifiez le token dans les réglages.';
+        if (reponse.status === 403) return 'accès interdit (403). Le token doit avoir le droit « Contents : Read and write ». ' + detail;
+        if (reponse.status === 404) return 'dépôt introuvable (404). Vérifiez le compte, le dépôt et les droits du token.';
+
+        return 'erreur GitHub ' + reponse.status + (detail ? ' : ' + detail : '');
+    }
+
+    // =========================
+    // FENÊTRE DE RÉGLAGES
+    // =========================
+
+    const dlg = document.getElementById('dlgReglages');
+    const formReglages = document.getElementById('formReglages');
+
+    function ouvrirReglages() {
+        const r = lireReglages();
+        Object.keys(REGLAGES_PAR_DEFAUT).forEach(function (cle) {
+            formReglages.elements[cle].value = r[cle] || '';
+        });
+        dlg.showModal();
+    }
+
+    formReglages.addEventListener('submit', function (ev) {
+
+        if (!ev.submitter || ev.submitter.value !== 'ok') return;
+
+        const r = {};
+        Object.keys(REGLAGES_PAR_DEFAUT).forEach(function (cle) {
+            r[cle] = formReglages.elements[cle].value.trim() || REGLAGES_PAR_DEFAUT[cle];
+        });
+        ecrireReglages(r);
+    });
+
+    // =========================
+    // BOUTONS
+    // =========================
+
+    document.getElementById('btnReglages').addEventListener('click', ouvrirReglages);
+
+    const inputPhoto = document.getElementById('inputPhoto');
+
+    inputPhoto.addEventListener('change', function () {
+        const fichier = inputPhoto.files && inputPhoto.files[0];
+        inputPhoto.value = '';
+        if (fichier) analyserPhoto(fichier);
+    });
+
+    document.getElementById('btnManuel').addEventListener('click', function () {
+        afficherVerification({ presse: '', spec: '', bladderCode: '', bladderType: '' }, null);
+    });
+
+    document.getElementById('btnRecommencer').addEventListener('click', function () {
+        afficher('ecranPhoto');
+    });
+
+    document.getElementById('btnNouvelle').addEventListener('click', function () {
+        afficher('ecranPhoto');
+    });
+
+    // Premier lancement : on ouvre directement les réglages.
+    if (!reglagesComplets(lireReglages())) {
+        setTimeout(ouvrirReglages, 300);
+    }
+
+})();
+</script>
+</body>
+</html>
