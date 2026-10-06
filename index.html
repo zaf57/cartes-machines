@@ -272,6 +272,38 @@
   dialog .champ input { font-family: inherit; font-size: 1rem; font-weight: 500; }
   .aide { color: var(--doux); font-size: .82rem; text-align: center; margin: 10px 0 0; }
 
+  /* ---------- Liste des presses ---------- */
+  .barre-retour { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .barre-retour h2 { flex: 1; margin: 0; font-size: 1.15rem; }
+  .rond-btn {
+    display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px;
+    border: 1px solid var(--bord); background: var(--carte); color: var(--texte); cursor: pointer;
+  }
+  .rond-btn svg { width: 20px; height: 20px; }
+  .rond-btn.tourne svg { animation: tourne .8s linear infinite; }
+  @keyframes tourne { to { transform: rotate(360deg); } }
+  input.recherche {
+    width: 100%; padding: 13px 14px; font: inherit; font-size: 1rem;
+    border: 1px solid var(--bord); border-radius: 14px; background: var(--carte); color: var(--texte);
+  }
+  input.recherche:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(234, 122, 18, .18); }
+  .compteur { margin: 10px 4px; font-size: .78rem; color: var(--doux); min-height: 1em; }
+  .poubelle {
+    display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 10px;
+    border: 0; background: transparent; color: var(--doux); cursor: pointer;
+  }
+  .poubelle svg { width: 19px; height: 19px; }
+  .poubelle:active { background: var(--erreur-doux); color: var(--erreur); }
+  .bouton.rouge { background: #dc2626; color: #fff; border-color: transparent; box-shadow: 0 6px 16px rgba(220, 38, 38, .28); }
+  .bouton.rouge:active { background: #b91c1c; }
+  .cadenas.danger { background: var(--erreur-doux); color: var(--erreur); }
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 14px; z-index: 20;
+    background: var(--ardoise); color: #fff; font-weight: 600; font-size: .92rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+  }
+
   /* ---------- Code d'accès ---------- */
   .dlg-code { width: min(340px, calc(100% - 32px)); text-align: center; }
   .dlg-code h2 { justify-content: center; margin: 0; }
@@ -332,6 +364,11 @@
     <button class="bouton" id="btnManuel">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
       Saisir à la main
+    </button>
+
+    <button class="bouton" id="btnPresses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+      Toutes les presses
     </button>
 
     <h3 class="titre-section">Envoyées depuis ce téléphone</h3>
@@ -398,6 +435,22 @@
     </form>
   </section>
 
+  <!-- LISTE DE TOUTES LES PRESSES -->
+  <section id="ecranPresses" hidden>
+    <div class="barre-retour">
+      <button class="rond-btn" id="btnRetourPresses" aria-label="Retour">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <h2>Toutes les presses</h2>
+      <button class="rond-btn" id="btnRafraichir" aria-label="Actualiser">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+    <input class="recherche" id="recherchePresses" type="search" placeholder="Rechercher une presse, une spec…" autocomplete="off">
+    <p class="compteur" id="compteurPresses"></p>
+    <div class="bloc recents" id="listePresses"></div>
+  </section>
+
   <!-- 4. TERMINÉ -->
   <section id="ecranOK" hidden>
     <div class="bloc">
@@ -417,6 +470,22 @@
   </section>
 
 </main>
+
+<!-- CONFIRMATION DE SUPPRESSION -->
+<dialog id="dlgSuppr" class="dlg-code">
+  <form method="dialog" id="formSuppr">
+    <div class="cadenas danger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    </div>
+    <h2 id="supprTitre">Supprimer ?</h2>
+    <p class="aide">La presse sera retirée de la liste et de l'historique, pour tout le monde.</p>
+    <p class="code-erreur" id="supprErreur"></p>
+    <button class="bouton rouge" value="ok" id="btnConfirmerSuppr">Supprimer</button>
+    <button class="bouton discret" value="annuler" formnovalidate>Annuler</button>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
 
 <!-- CODE D'ACCÈS AUX RÉGLAGES -->
 <dialog id="dlgCode" class="dlg-code">
@@ -507,7 +576,7 @@
     // NAVIGATION ENTRE ÉCRANS
     // =========================
 
-    const ecrans = ['ecranPhoto', 'ecranAnalyse', 'ecranVerif', 'ecranOK'];
+    const ecrans = ['ecranPhoto', 'ecranAnalyse', 'ecranVerif', 'ecranOK', 'ecranPresses'];
 
     function afficher(id) {
         ecrans.forEach(function (e) {
@@ -1107,45 +1176,87 @@
         return btoa(binaire);
     }
 
-    async function enregistrerSurGitHub(fiche, r) {
-
+    function urlFichier(r) {
         const chemin = r.fichier.split('/').map(encodeURIComponent).join('/');
-        const url = 'https://api.github.com/repos/' +
+        return 'https://api.github.com/repos/' +
             encodeURIComponent(r.compte) + '/' + encodeURIComponent(r.depot) +
             '/contents/' + chemin;
+    }
 
-        const entetes = {
+    function entetesGitHub(r) {
+        return {
             'Authorization': 'Bearer ' + r.token,
             'Accept': 'application/vnd.github+json',
             'X-GitHub-Api-Version': '2022-11-28'
         };
+    }
 
-        // Deux essais : si quelqu'un a modifié le fichier entre la lecture
-        // et l'écriture, GitHub refuse (conflit) et on recommence.
+    // Lit presses.json sur GitHub. Renvoie { donnees, sha } ; sha est
+    // vide si le fichier n'existe pas encore.
+    async function lireFichier(r) {
+
+        const lecture = await fetch(
+            urlFichier(r) + '?ref=' + encodeURIComponent(r.branche) + '&_=' + Date.now(),
+            { headers: entetesGitHub(r), cache: 'no-store' }
+        );
+
+        let donnees = { maj: null, presses: {}, historique: [] };
+        let sha = '';
+
+        if (lecture.status === 200) {
+            const json = await lecture.json();
+            sha = json.sha;
+            try {
+                donnees = JSON.parse(base64VersTexte(json.content));
+            } catch (e) {
+                throw new Error('le fichier ' + r.fichier + ' sur GitHub n\'est pas un JSON valide');
+            }
+        } else if (lecture.status !== 404) {
+            throw new Error(await messageErreurGitHub(lecture));
+        }
+
+        donnees.presses = donnees.presses || {};
+        donnees.historique = Array.isArray(donnees.historique) ? donnees.historique : [];
+
+        return { donnees: donnees, sha: sha };
+    }
+
+    // Lit le fichier, applique "modifier" puis le renvoie sur GitHub.
+    // Trois essais : si quelqu'un a modifié le fichier entre la lecture
+    // et l'écriture, GitHub refuse (conflit) et on recommence.
+    async function modifierFichier(r, modifier, message) {
+
         for (let essai = 0; essai < 3; essai++) {
 
-            let sha;
-            let donnees = { maj: null, presses: {}, historique: [] };
+            const lu = await lireFichier(r);
+            modifier(lu.donnees);
 
-            const lecture = await fetch(
-                url + '?ref=' + encodeURIComponent(r.branche),
-                { headers: entetes, cache: 'no-store' }
-            );
+            const corps = {
+                message: message,
+                content: texteVersBase64(JSON.stringify(lu.donnees, null, 2) + '\n'),
+                branch: r.branche
+            };
+            if (lu.sha) corps.sha = lu.sha;
 
-            if (lecture.status === 200) {
-                const json = await lecture.json();
-                sha = json.sha;
-                try {
-                    donnees = JSON.parse(base64VersTexte(json.content));
-                } catch (e) {
-                    throw new Error('le fichier ' + r.fichier + ' sur GitHub n\'est pas un JSON valide');
-                }
-            } else if (lecture.status !== 404) {
-                throw new Error(await messageErreurGitHub(lecture));
-            }
+            const ecriture = await fetch(urlFichier(r), {
+                method: 'PUT',
+                headers: Object.assign({ 'Content-Type': 'application/json' }, entetesGitHub(r)),
+                body: JSON.stringify(corps)
+            });
 
-            donnees.presses = donnees.presses || {};
-            donnees.historique = Array.isArray(donnees.historique) ? donnees.historique : [];
+            if (ecriture.ok) return lu.donnees;
+
+            if (ecriture.status === 409 || ecriture.status === 422) continue;
+
+            throw new Error(await messageErreurGitHub(ecriture));
+        }
+
+        throw new Error('conflit persistant avec GitHub, réessayez.');
+    }
+
+    function enregistrerSurGitHub(fiche, r) {
+
+        return modifierFichier(r, function (donnees) {
 
             const entree = {
                 presse: fiche.presse,
@@ -1161,27 +1272,16 @@
             donnees.historique = donnees.historique.slice(0, 100);
             donnees.maj = fiche.date;
 
-            const corps = {
-                message: 'Carte ' + fiche.presse + ' (' + fiche.spec + ')',
-                content: texteVersBase64(JSON.stringify(donnees, null, 2) + '\n'),
-                branch: r.branche
-            };
-            if (sha) corps.sha = sha;
+        }, 'Carte ' + fiche.presse + ' (' + fiche.spec + ')');
+    }
 
-            const ecriture = await fetch(url, {
-                method: 'PUT',
-                headers: Object.assign({ 'Content-Type': 'application/json' }, entetes),
-                body: JSON.stringify(corps)
-            });
+    // Retire la presse de la liste ET de l'historique.
+    function supprimerSurGitHub(cle, nom, r) {
 
-            if (ecriture.ok) return;
-
-            if (ecriture.status === 409 || ecriture.status === 422) continue;
-
-            throw new Error(await messageErreurGitHub(ecriture));
-        }
-
-        throw new Error('conflit persistant avec GitHub, réessayez.');
+        return modifierFichier(r, function (donnees) {
+            delete donnees.presses[cle];
+            donnees.historique = donnees.historique.filter(function (h) { return h.cle !== cle; });
+        }, 'Suppression ' + nom);
     }
 
     async function messageErreurGitHub(reponse) {
@@ -1202,6 +1302,183 @@
 
     const dlg = document.getElementById('dlgReglages');
     const formReglages = document.getElementById('formReglages');
+
+    // =========================
+    // TOUTES LES PRESSES (lecture + suppression sur GitHub)
+    // =========================
+
+    let presses = null;            // contenu de presses.json
+    let aSupprimer = null;         // { cle, nom } pendant la confirmation
+
+    const listePresses = document.getElementById('listePresses');
+    const recherchePresses = document.getElementById('recherchePresses');
+    const compteurPresses = document.getElementById('compteurPresses');
+    const btnRafraichir = document.getElementById('btnRafraichir');
+
+    const ICONE_POUBELLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
+    function ligneVide(texte) {
+        listePresses.innerHTML = '';
+        const p = document.createElement('p');
+        p.className = 'vide';
+        p.textContent = texte;
+        listePresses.appendChild(p);
+    }
+
+    async function chargerPresses() {
+
+        const r = lireReglages();
+
+        if (!reglagesComplets(r)) {
+            compteurPresses.textContent = '';
+            ligneVide('Complétez d\'abord les réglages (roue dentée en haut à droite).');
+            return;
+        }
+
+        if (!presses) ligneVide('Chargement…');
+        btnRafraichir.classList.add('tourne');
+
+        try {
+            presses = (await lireFichier(r)).donnees;
+            afficherPresses();
+        } catch (e) {
+            console.error(e);
+            ligneVide('Lecture impossible : ' + e.message);
+        } finally {
+            btnRafraichir.classList.remove('tourne');
+        }
+    }
+
+    function afficherPresses() {
+
+        if (!presses) return;
+
+        const q = recherchePresses.value.toLowerCase().replace(/\s+/g, '');
+
+        const toutes = Object.keys(presses.presses).map(function (cle) {
+            return Object.assign({ cle: cle }, presses.presses[cle]);
+        });
+
+        const liste = toutes
+            .filter(function (c) {
+                if (!q) return true;
+                return [c.cle, c.presse, c.spec, c.bladderCode, c.bladderType, c.bladderDate]
+                    .join(' ').toLowerCase().replace(/\s+/g, '').includes(q);
+            })
+            .sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+        compteurPresses.textContent = !toutes.length ? ''
+            : q ? liste.length + ' sur ' + toutes.length + ' presses'
+            : toutes.length + (toutes.length > 1 ? ' presses' : ' presse');
+
+        if (!toutes.length) { ligneVide('Aucune presse enregistrée.'); return; }
+        if (!liste.length) { ligneVide('Aucun résultat.'); return; }
+
+        listePresses.innerHTML = '';
+
+        liste.forEach(function (c) {
+
+            const ligne = document.createElement('div');
+            ligne.className = 'recent';
+
+            const pastille = document.createElement('span');
+            pastille.className = 'pastille';
+            pastille.textContent = (c.presse || '?').replace(/[^A-Z]/gi, '').slice(0, 2).toUpperCase() || '#';
+
+            const infos = document.createElement('div');
+            infos.className = 'infos';
+            const b = document.createElement('b');
+            b.textContent = c.presse || c.cle;
+            const detail = document.createElement('span');
+            detail.textContent = [c.spec, c.bladderCode, c.bladderType, c.bladderDate].filter(Boolean).join(' · ') || '—';
+            infos.append(b, detail);
+
+            const t = document.createElement('time');
+            t.textContent = c.date ? heureCourte(c.date) : '';
+
+            const poubelle = document.createElement('button');
+            poubelle.className = 'poubelle';
+            poubelle.type = 'button';
+            poubelle.setAttribute('aria-label', 'Supprimer ' + (c.presse || c.cle));
+            poubelle.innerHTML = ICONE_POUBELLE;
+            poubelle.addEventListener('click', function () {
+                demanderSuppression(c.cle, c.presse || c.cle);
+            });
+
+            ligne.append(pastille, infos, t, poubelle);
+            listePresses.appendChild(ligne);
+        });
+    }
+
+    // --- Confirmation et suppression -----------------------------------
+
+    const dlgSuppr = document.getElementById('dlgSuppr');
+    const formSuppr = document.getElementById('formSuppr');
+    const btnConfirmerSuppr = document.getElementById('btnConfirmerSuppr');
+    const supprErreur = document.getElementById('supprErreur');
+
+    function demanderSuppression(cle, nom) {
+        aSupprimer = { cle: cle, nom: nom };
+        document.getElementById('supprTitre').textContent = 'Supprimer ' + nom + ' ?';
+        supprErreur.textContent = '';
+        btnConfirmerSuppr.disabled = false;
+        btnConfirmerSuppr.textContent = 'Supprimer';
+        dlgSuppr.showModal();
+    }
+
+    formSuppr.addEventListener('submit', async function (ev) {
+
+        if (!ev.submitter || ev.submitter.value !== 'ok') return;
+        ev.preventDefault();                // on ferme nous-mêmes après l'envoi
+
+        const cible = aSupprimer;
+        if (!cible) return;
+
+        btnConfirmerSuppr.disabled = true;
+        btnConfirmerSuppr.textContent = 'Suppression…';
+        supprErreur.textContent = '';
+
+        try {
+            presses = await supprimerSurGitHub(cible.cle, cible.nom, lireReglages());
+            retirerRecent(cible.cle);
+            dlgSuppr.close();
+            afficherPresses();
+            montrerToast(cible.nom + ' supprimée');
+        } catch (e) {
+            console.error(e);
+            supprErreur.textContent = 'Suppression impossible : ' + e.message;
+            btnConfirmerSuppr.disabled = false;
+            btnConfirmerSuppr.textContent = 'Réessayer';
+        }
+    });
+
+    function retirerRecent(cle) {
+        try {
+            const liste = lireRecents().filter(function (r) { return r.cle !== cle; });
+            localStorage.setItem(CLE_RECENTS, JSON.stringify(liste));
+        } catch (e) { /* mémoire indisponible : sans importance */ }
+    }
+
+    function montrerToast(texte) {
+        const toast = document.getElementById('toast');
+        toast.textContent = '✓ ' + texte;
+        toast.hidden = false;
+        clearTimeout(montrerToast.minuterie);
+        montrerToast.minuterie = setTimeout(function () { toast.hidden = true; }, 2600);
+    }
+
+    recherchePresses.addEventListener('input', afficherPresses);
+    btnRafraichir.addEventListener('click', chargerPresses);
+
+    document.getElementById('btnPresses').addEventListener('click', function () {
+        recherchePresses.value = '';
+        afficher('ecranPresses');
+        chargerPresses();
+    });
+
+    document.getElementById('btnRetourPresses').addEventListener('click', function () {
+        afficher('ecranPhoto');
+    });
 
     // =========================
     // CODE D'ACCÈS AUX RÉGLAGES
