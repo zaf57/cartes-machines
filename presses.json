@@ -1,15 +1,23 @@
 {
-  "maj": "2026-10-06T16:50:14.531Z",
+  "maj": "2026-10-06T16:53:23.473Z",
   "presses": {
     "VL136G": {
       "presse": "VL 136 G",
       "spec": "149582",
-      "bladderCode": "",
-      "bladderType": "TU 5 V1",
-      "date": "2026-10-06T16:50:14.531Z"
+      "bladderCode": "0702",
+      "bladderType": "",
+      "date": "2026-10-06T16:53:23.473Z"
     }
   },
   "historique": [
+    {
+      "cle": "VL136G",
+      "presse": "VL 136 G",
+      "spec": "149582",
+      "bladderCode": "0702",
+      "bladderType": "",
+      "date": "2026-10-06T16:53:23.473Z"
+    },
     {
       "cle": "VL136G",
       "presse": "VL 136 G",
