@@ -83,6 +83,7 @@
   .badge { font-size: .75rem; font-weight: 600; }
   .champ.trouve .badge { color: var(--ok); }
   .champ.manquant .badge { color: var(--alerte); }
+  #champBladderDate .badge { color: var(--doux); font-weight: 400; }
   .message { padding: 12px; border-radius: 8px; margin-top: 12px; font-weight: 500; }
   .message.erreur { background: color-mix(in srgb, var(--erreur) 15%, transparent); color: var(--erreur); }
   .message.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
@@ -134,19 +135,23 @@
     <form class="bloc" id="formVerif" autocomplete="off">
       <div class="champ" data-champ="presse">
         <label for="f-presse">Presse <span class="badge"></span></label>
-        <input id="f-presse" name="presse" placeholder="VL 136 G" required>
+        <input id="f-presse" name="presse" required>
       </div>
       <div class="champ" data-champ="spec">
         <label for="f-spec">Specification Code (fin) <span class="badge"></span></label>
-        <input id="f-spec" name="spec" inputmode="numeric" placeholder="149582">
+        <input id="f-spec" name="spec" inputmode="numeric">
       </div>
       <div class="champ" data-champ="bladderCode">
         <label for="f-bladderCode">BladderCode <span class="badge"></span></label>
-        <input id="f-bladderCode" name="bladderCode" inputmode="numeric" placeholder="0702">
+        <input id="f-bladderCode" name="bladderCode" inputmode="numeric">
       </div>
       <div class="champ" data-champ="bladderType">
         <label for="f-bladderType">BladderType <span class="badge"></span></label>
-        <input id="f-bladderType" name="bladderType" placeholder="TU 5 V1">
+        <input id="f-bladderType" name="bladderType">
+      </div>
+      <div class="champ" id="champBladderDate">
+        <label for="f-bladderDate">Date de la bladder <span class="badge">à saisir</span></label>
+        <input id="f-bladderDate" name="bladderDate" type="date">
       </div>
 
       <button type="submit" class="bouton principal" id="btnEnregistrer">✅ Enregistrer</button>
@@ -642,6 +647,9 @@
             }
         });
 
+        // Date de la bladder : jamais sur la carte, toujours saisie à la main.
+        document.getElementById('f-bladderDate').value = '';
+
         document.getElementById('texteBrut').textContent = texteBrut || '(aucun texte)';
         document.getElementById('detailsTexte').hidden = (texteBrut === null);
 
@@ -660,6 +668,7 @@
             spec: f.spec.trim(),
             bladderCode: f.bladderCode.trim(),
             bladderType: f.bladderType.toUpperCase().replace(/\s+/g, ' ').trim(),
+            bladderDate: (f.bladderDate || '').trim(),
             date: new Date().toISOString()
         };
     }
@@ -701,6 +710,12 @@
         }
     });
 
+    // "2026-10-06" -> "06/10/2026"
+    function dateFr(iso) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+        return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || '');
+    }
+
     function afficherConfirmation(fiche) {
 
         const resume = document.getElementById('resume');
@@ -710,7 +725,8 @@
             ['Presse', fiche.presse],
             ['Spec', fiche.spec],
             ['BladderCode', fiche.bladderCode],
-            ['BladderType', fiche.bladderType]
+            ['BladderType', fiche.bladderType],
+            ['Date bladder', dateFr(fiche.bladderDate)]
         ].forEach(function (ligne) {
             const div = document.createElement('div');
             div.append(ligne[0] + ' : ');
@@ -787,6 +803,7 @@
                 spec: fiche.spec,
                 bladderCode: fiche.bladderCode,
                 bladderType: fiche.bladderType,
+                bladderDate: fiche.bladderDate,
                 date: fiche.date
             };
 
