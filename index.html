@@ -271,6 +271,29 @@
   dialog .champ { margin-bottom: 12px; }
   dialog .champ input { font-family: inherit; font-size: 1rem; font-weight: 500; }
   .aide { color: var(--doux); font-size: .82rem; text-align: center; margin: 10px 0 0; }
+
+  /* ---------- Code d'accès ---------- */
+  .dlg-code { width: min(340px, calc(100% - 32px)); text-align: center; }
+  .dlg-code h2 { justify-content: center; margin: 0; }
+  .dlg-code .aide { margin: 4px 0 16px; }
+  .cadenas {
+    display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 12px;
+    border-radius: 50%; background: var(--accent-doux); color: var(--accent-fonce);
+  }
+  .cadenas svg { width: 26px; height: 26px; }
+  input.code {
+    width: 100%; padding: 12px; text-align: center;
+    font-family: var(--mono); font-size: 2rem; font-weight: 700; letter-spacing: .5em; text-indent: .5em;
+    border: 2px solid var(--bord); border-radius: 14px; background: var(--carte-2); color: var(--texte);
+    -webkit-text-security: disc;
+  }
+  input.code:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(234, 122, 18, .18); }
+  .code-erreur { min-height: 1.3em; margin: 8px 0 0; color: var(--erreur); font-size: .85rem; font-weight: 600; }
+  .secoue { animation: secoue .35s; }
+  @keyframes secoue {
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
 </style>
 </head>
 <body>
@@ -394,6 +417,21 @@
   </section>
 
 </main>
+
+<!-- CODE D'ACCÈS AUX RÉGLAGES -->
+<dialog id="dlgCode" class="dlg-code">
+  <form method="dialog" id="formCode">
+    <div class="cadenas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>Accès aux réglages</h2>
+    <p class="aide">Entrez le code à 4 chiffres.</p>
+    <input id="c-code" class="code" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Code">
+    <p class="code-erreur" id="codeErreur"></p>
+    <button class="bouton principal" value="ok">Valider</button>
+    <button class="bouton discret" value="annuler" formnovalidate>Annuler</button>
+  </form>
+</dialog>
 
 <!-- RÉGLAGES -->
 <dialog id="dlgReglages">
@@ -999,7 +1037,7 @@
 
         if (!reglagesComplets(reglages)) {
             afficherMessage(messageVerif, 'Complétez d\'abord les réglages GitHub (roue dentée en haut à droite).', 'erreur');
-            ouvrirReglages();
+            demanderReglages();
             return;
         }
 
@@ -1165,6 +1203,72 @@
     const dlg = document.getElementById('dlgReglages');
     const formReglages = document.getElementById('formReglages');
 
+    // =========================
+    // CODE D'ACCÈS AUX RÉGLAGES
+    // =========================
+
+    // Empreinte SHA-256 de "cartes-machines:<code>" : le code n'apparaît
+    // pas en clair dans la page. Simple barrière contre les mauvaises
+    // manipulations, pas une vraie sécurité.
+    const EMPREINTE_CODE = '910eee17b5c36cbb876c039bd890f4a98997338363a76a6feba72c9ca9902cba';
+
+    // Une fois le bon code saisi, il n'est plus redemandé tant que
+    // l'onglet reste ouvert.
+    let reglagesDeverrouilles = false;
+
+    const dlgCode = document.getElementById('dlgCode');
+    const formCode = document.getElementById('formCode');
+    const champCode = document.getElementById('c-code');
+    const codeErreur = document.getElementById('codeErreur');
+
+    async function empreinte(texte) {
+        const octets = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texte));
+        return Array.from(new Uint8Array(octets), function (o) {
+            return o.toString(16).padStart(2, '0');
+        }).join('');
+    }
+
+    function demanderReglages() {
+        if (reglagesDeverrouilles) {
+            ouvrirReglages();
+            return;
+        }
+        champCode.value = '';
+        codeErreur.textContent = '';
+        dlgCode.showModal();
+        champCode.focus();
+    }
+
+    async function verifierCode() {
+
+        if (await empreinte('cartes-machines:' + champCode.value.trim()) === EMPREINTE_CODE) {
+            reglagesDeverrouilles = true;
+            dlgCode.close();
+            ouvrirReglages();
+            return;
+        }
+
+        codeErreur.textContent = 'Code incorrect';
+        champCode.value = '';
+        formCode.classList.remove('secoue');
+        void formCode.offsetWidth;          // relance l'animation
+        formCode.classList.add('secoue');
+        champCode.focus();
+    }
+
+    formCode.addEventListener('submit', function (ev) {
+        if (!ev.submitter || ev.submitter.value !== 'ok') return;
+        ev.preventDefault();                // la fenêtre reste ouverte si le code est faux
+        verifierCode();
+    });
+
+    // Validation automatique dès le 4e chiffre.
+    champCode.addEventListener('input', function () {
+        champCode.value = champCode.value.replace(/\D/g, '').slice(0, 4);
+        codeErreur.textContent = '';
+        if (champCode.value.length === 4) verifierCode();
+    });
+
     function ouvrirReglages() {
         const r = lireReglages();
         Object.keys(REGLAGES_PAR_DEFAUT).forEach(function (cle) {
@@ -1188,7 +1292,7 @@
     // BOUTONS
     // =========================
 
-    document.getElementById('btnReglages').addEventListener('click', ouvrirReglages);
+    document.getElementById('btnReglages').addEventListener('click', demanderReglages);
 
     const inputPhoto = document.getElementById('inputPhoto');
 
@@ -1219,7 +1323,7 @@
 
     // Premier lancement : on ouvre directement les réglages.
     if (!reglagesComplets(lireReglages())) {
-        setTimeout(ouvrirReglages, 300);
+        setTimeout(demanderReglages, 300);
     }
 
 })();
