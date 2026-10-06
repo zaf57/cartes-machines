@@ -1,5 +1,24 @@
 {
-  "maj": "2026-10-06T17:38:39.160Z",
-  "presses": {},
-  "historique": []
+  "maj": "2026-10-06T18:14:41.351Z",
+  "presses": {
+    "TETST": {
+      "presse": "TETST",
+      "spec": "",
+      "bladderCode": "",
+      "bladderType": "",
+      "bladderDate": "",
+      "date": "2026-10-06T18:14:41.351Z"
+    }
+  },
+  "historique": [
+    {
+      "cle": "TETST",
+      "presse": "TETST",
+      "spec": "",
+      "bladderCode": "",
+      "bladderType": "",
+      "bladderDate": "",
+      "date": "2026-10-06T18:14:41.351Z"
+    }
+  ]
 }
