@@ -151,7 +151,8 @@
       </div>
       <div class="champ" id="champBladderDate">
         <label for="f-bladderDate">Date de la bladder <span class="badge">à saisir</span></label>
-        <input id="f-bladderDate" name="bladderDate" type="date">
+        <input id="f-bladderDate" name="bladderDate" inputmode="numeric" maxlength="4" pattern="\d{4}" title="Code à 4 chiffres">
+
       </div>
 
       <button type="submit" class="bouton principal" id="btnEnregistrer">✅ Enregistrer</button>
@@ -710,12 +711,6 @@
         }
     });
 
-    // "2026-10-06" -> "06/10/2026"
-    function dateFr(iso) {
-        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
-        return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || '');
-    }
-
     function afficherConfirmation(fiche) {
 
         const resume = document.getElementById('resume');
@@ -726,7 +721,7 @@
             ['Spec', fiche.spec],
             ['BladderCode', fiche.bladderCode],
             ['BladderType', fiche.bladderType],
-            ['Date bladder', dateFr(fiche.bladderDate)]
+            ['Date bladder', fiche.bladderDate]
         ].forEach(function (ligne) {
             const div = document.createElement('div');
             div.append(ligne[0] + ' : ');
