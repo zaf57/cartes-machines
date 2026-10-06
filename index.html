@@ -4,127 +4,324 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f2933">
-<title>Carte Machine</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cartes">
+<title>Cartes Machines</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <style>
   :root {
-    --fond: #f3f4f6;
+    --fond: #eef0f3;
     --carte: #ffffff;
-    --texte: #1f2933;
-    --doux: #6b7280;
-    --bord: #d1d5db;
+    --carte-2: #f6f7f9;
+    --texte: #1b2430;
+    --doux: #66707d;
+    --bord: #dde1e6;
+    --ardoise: #1f2933;
+    --ardoise-2: #11151b;
     --accent: #ea7a12;
-    --accent-texte: #ffffff;
+    --accent-fonce: #c9640a;
+    --accent-doux: #fdf1e5;
+    --bleu: #1565c0;
     --ok: #15803d;
+    --ok-doux: #e8f5ec;
     --alerte: #b45309;
+    --alerte-doux: #fdf3e3;
     --erreur: #b91c1c;
+    --erreur-doux: #fdecec;
+    --ombre: 0 1px 2px rgba(16, 24, 40, .06), 0 4px 16px rgba(16, 24, 40, .06);
+    --rayon: 16px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --fond: #111418;
-      --carte: #1c2128;
-      --texte: #e5e7eb;
-      --doux: #9ca3af;
-      --bord: #374151;
+      --fond: #0e1116;
+      --carte: #181d24;
+      --carte-2: #1f252e;
+      --texte: #e6e9ed;
+      --doux: #98a1ad;
+      --bord: #2b333d;
+      --accent-doux: #3a2614;
+      --bleu: #64a6f0;
       --ok: #4ade80;
+      --ok-doux: #15291d;
       --alerte: #fbbf24;
+      --alerte-doux: #2e2410;
       --erreur: #f87171;
+      --erreur-doux: #331a1a;
+      --ombre: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
     }
   }
-  * { box-sizing: border-box; }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
   body {
-    margin: 0;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     background: var(--fond);
     color: var(--texte);
     min-height: 100vh;
+    min-height: 100dvh;
+    font-size: 16px;
+    line-height: 1.45;
   }
+
+  /* ---------- En-tête ---------- */
   header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 16px;
-    background: #1f2933; color: #fff;
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; gap: 12px;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    background: linear-gradient(180deg, #2b3744, var(--ardoise));
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .18);
   }
-  header h1 { margin: 0; font-size: 1.15rem; font-weight: 600; }
-  header button {
-    background: none; border: 0; color: #fff; font-size: 1.4rem; padding: 4px 8px; cursor: pointer;
+  header img { width: 36px; height: 36px; border-radius: 9px; display: block; }
+  header .titre { flex: 1; min-width: 0; }
+  header h1 { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: .01em; }
+  header p { margin: 0; font-size: .78rem; color: #aab4c0; }
+  .icone-btn {
+    display: grid; place-items: center;
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(255, 255, 255, .08); border: 0; color: #fff; cursor: pointer;
   }
-  main { max-width: 520px; margin: 0 auto; padding: 16px; }
+  .icone-btn:active { background: rgba(255, 255, 255, .16); }
+  .icone-btn svg { width: 22px; height: 22px; }
+
+  main { max-width: 520px; margin: 0 auto; padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
   section[hidden] { display: none !important; }
+
   .bloc {
-    background: var(--carte); border: 1px solid var(--bord); border-radius: 12px; padding: 16px; margin-bottom: 16px;
+    background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon);
+    padding: 16px; margin-bottom: 14px; box-shadow: var(--ombre);
   }
-  .gros-bouton {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; min-height: 200px;
-    background: var(--accent); color: var(--accent-texte);
-    border: 0; border-radius: 16px; font-size: 1.3rem; font-weight: 600; cursor: pointer;
+  .titre-section {
+    margin: 22px 4px 10px; font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em; color: var(--doux);
   }
-  .gros-bouton span { font-size: 3rem; }
+
+  /* ---------- Écran photo ---------- */
+  .scanner {
+    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; width: 100%; min-height: 300px; padding: 28px 16px;
+    border-radius: 22px; cursor: pointer; overflow: hidden;
+    color: #fff; text-align: center;
+    background:
+      radial-gradient(120% 80% at 50% 0%, rgba(234, 122, 18, .22), transparent 60%),
+      linear-gradient(180deg, #2b3744, var(--ardoise-2));
+    box-shadow: 0 10px 30px rgba(17, 21, 27, .28);
+    transition: transform .12s ease;
+  }
+  .scanner:active { transform: scale(.985); }
+  .scanner .coins { position: absolute; inset: 18px; pointer-events: none; }
+  .scanner .coins i {
+    position: absolute; width: 34px; height: 34px; border: 4px solid var(--accent);
+  }
+  .scanner .coins i:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 10px; }
+  .scanner .coins i:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 10px; }
+  .scanner .coins i:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 10px; }
+  .scanner .coins i:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 10px; }
+  .scanner .rond {
+    display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 0 10px rgba(234, 122, 18, .18), 0 8px 20px rgba(0, 0, 0, .3);
+  }
+  .scanner .rond svg { width: 40px; height: 40px; }
+  .scanner strong { font-size: 1.35rem; font-weight: 700; }
+  .scanner small { color: #b8c1cc; font-size: .88rem; max-width: 260px; }
+
+  .etapes { display: flex; gap: 8px; margin-top: 14px; }
+  .etapes div {
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    padding: 10px; border-radius: 12px; background: var(--carte); border: 1px solid var(--bord);
+    font-size: .8rem; font-weight: 600; color: var(--doux);
+  }
+  .etapes b {
+    display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-doux); color: var(--accent-fonce); font-size: .75rem;
+  }
+
+  .recents { padding: 4px 16px; }
+  .recent {
+    display: flex; align-items: center; gap: 12px; padding: 12px 0;
+    border-top: 1px solid var(--bord);
+  }
+  .recent:first-child { border-top: 0; }
+  .recent .pastille {
+    flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px;
+    background: var(--accent-doux); color: var(--accent-fonce); font-weight: 800; font-size: .8rem;
+  }
+  .recent .infos { flex: 1; min-width: 0; }
+  .recent .infos b { display: block; font-size: 1rem; color: var(--bleu); }
+  .recent .infos span {
+    display: block; font-family: var(--mono); font-size: .78rem; color: var(--doux);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .recent time { flex: none; font-size: .75rem; color: var(--doux); }
+  .vide { color: var(--doux); font-size: .9rem; text-align: center; padding: 14px 0; margin: 0; }
+
+  /* ---------- Boutons ---------- */
   .bouton {
-    display: block; width: 100%; padding: 14px; margin-top: 10px;
-    border-radius: 10px; border: 1px solid var(--bord);
-    background: var(--carte); color: var(--texte); font-size: 1rem; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 15px; margin-top: 10px;
+    border-radius: 14px; border: 1px solid var(--bord);
+    background: var(--carte); color: var(--texte);
+    font: inherit; font-size: 1rem; font-weight: 650; cursor: pointer;
+    transition: transform .1s ease, background .15s ease;
   }
-  .bouton.principal { background: var(--accent); color: var(--accent-texte); border-color: var(--accent); }
+  .bouton:active { transform: scale(.98); }
+  .bouton svg { width: 20px; height: 20px; flex: none; }
+  .bouton.principal {
+    background: var(--accent); color: #fff; border-color: transparent;
+    box-shadow: 0 6px 16px rgba(234, 122, 18, .3);
+  }
+  .bouton.principal:active { background: var(--accent-fonce); }
+  .bouton.discret { background: transparent; box-shadow: none; }
   .bouton:disabled { opacity: .6; cursor: wait; }
-  .aide { color: var(--doux); font-size: .9rem; text-align: center; margin: 12px 0 0; }
-  img.apercu { width: 100%; border-radius: 10px; display: block; max-height: 260px; object-fit: contain; background: #000; }
-  .progression { height: 8px; background: var(--bord); border-radius: 4px; overflow: hidden; margin: 14px 0 8px; }
-  .progression div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
-  .statut { text-align: center; color: var(--doux); margin: 0; }
-  .champ { margin-bottom: 14px; }
-  .champ label { display: flex; justify-content: space-between; align-items: baseline; font-size: .85rem; color: var(--doux); margin-bottom: 4px; }
+
+  /* ---------- Analyse ---------- */
+  .cadre-photo {
+    position: relative; border-radius: 12px; overflow: hidden; background: #000;
+  }
+  .cadre-photo img { display: block; width: 100%; max-height: 340px; object-fit: contain; }
+  .cadre-photo .ligne-scan {
+    position: absolute; left: 0; right: 0; height: 3px; top: 0;
+    background: var(--accent); box-shadow: 0 0 16px 4px rgba(234, 122, 18, .7);
+    animation: balayage 1.8s ease-in-out infinite alternate;
+  }
+  @keyframes balayage { from { top: 4%; } to { top: 94%; } }
+  @media (prefers-reduced-motion: reduce) { .cadre-photo .ligne-scan { animation: none; top: 50%; } }
+  .progression { height: 8px; background: var(--carte-2); border-radius: 4px; overflow: hidden; margin: 16px 0 10px; }
+  .progression div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #f5a04a); border-radius: 4px; transition: width .3s ease; }
+  .statut { text-align: center; color: var(--doux); margin: 0; font-weight: 500; }
+
+  /* ---------- Vérification ---------- */
+  .entete-verif { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .entete-verif img {
+    width: 64px; height: 64px; object-fit: cover; border-radius: 10px; flex: none;
+    border: 1px solid var(--bord); background: #000; cursor: zoom-in;
+  }
+  .entete-verif h2 { margin: 0; font-size: 1.05rem; }
+  .entete-verif p { margin: 2px 0 0; color: var(--doux); font-size: .85rem; }
+
+  .grille { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .champ { min-width: 0; }
+  .grille .large { grid-column: 1 / -1; }
+  .champ label {
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    font-size: .78rem; font-weight: 600; color: var(--doux); margin-bottom: 5px;
+  }
   .champ input {
-    width: 100%; padding: 12px; font-size: 1.25rem; font-weight: 600; font-family: ui-monospace, Consolas, monospace;
-    border: 2px solid var(--bord); border-radius: 8px; background: var(--fond); color: var(--texte);
+    width: 100%; padding: 12px; font-family: var(--mono); font-size: 1.15rem; font-weight: 700;
+    border: 2px solid var(--bord); border-radius: 12px; background: var(--carte-2); color: var(--texte);
+    transition: border-color .15s ease, box-shadow .15s ease;
   }
-  .champ.trouve input { border-color: var(--ok); }
-  .champ.manquant input { border-color: var(--alerte); }
-  .badge { font-size: .75rem; font-weight: 600; }
-  .champ.trouve .badge { color: var(--ok); }
-  .champ.manquant .badge { color: var(--alerte); }
-  #champBladderDate .badge { color: var(--doux); font-weight: 400; }
-  .message { padding: 12px; border-radius: 8px; margin-top: 12px; font-weight: 500; }
-  .message.erreur { background: color-mix(in srgb, var(--erreur) 15%, transparent); color: var(--erreur); }
-  .message.ok { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
-  details { margin-top: 12px; color: var(--doux); font-size: .85rem; }
-  pre { white-space: pre-wrap; word-break: break-word; font-size: .75rem; background: var(--fond); padding: 8px; border-radius: 6px; }
-  .resume { font-size: 1.05rem; line-height: 1.7; }
-  .resume b { font-family: ui-monospace, Consolas, monospace; }
-  .grand-ok { font-size: 3rem; text-align: center; margin: 0; }
+  .champ input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(234, 122, 18, .18); }
+  .champ.grand input { font-size: 1.6rem; color: var(--bleu); text-align: center; letter-spacing: .04em; }
+  .champ.trouve input { border-color: color-mix(in srgb, var(--ok) 55%, var(--bord)); background: var(--ok-doux); }
+  .champ.manquant input { border-color: color-mix(in srgb, var(--alerte) 60%, var(--bord)); background: var(--alerte-doux); }
+  .badge {
+    font-size: .68rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+  }
+  .badge:empty { display: none; }
+  .champ.trouve .badge { color: var(--ok); background: var(--ok-doux); }
+  .champ.manquant .badge { color: var(--alerte); background: var(--alerte-doux); }
+  #champBladderDate .badge { color: var(--doux); background: var(--carte-2); }
+
+  .message { padding: 12px 14px; border-radius: 12px; margin-top: 12px; font-weight: 500; font-size: .92rem; }
+  .message.erreur { background: var(--erreur-doux); color: var(--erreur); }
+  .message.ok { background: var(--ok-doux); color: var(--ok); }
+  details { margin-top: 14px; color: var(--doux); font-size: .85rem; }
+  summary { cursor: pointer; }
+  pre {
+    white-space: pre-wrap; word-break: break-word; font-size: .72rem; font-family: var(--mono);
+    background: var(--carte-2); padding: 10px; border-radius: 10px; max-height: 240px; overflow: auto;
+  }
+
+  /* ---------- Terminé ---------- */
+  .succes { text-align: center; padding: 10px 0 4px; }
+  .succes .coche {
+    display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 10px;
+    border-radius: 50%; background: var(--ok-doux); color: var(--ok);
+    animation: apparition .35s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .succes .coche svg { width: 40px; height: 40px; }
+  @keyframes apparition { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .succes h2 { margin: 0; font-size: 1.2rem; }
+  .succes p { margin: 4px 0 0; color: var(--doux); font-size: .88rem; }
+  .resume { margin-top: 16px; }
+  .resume .presse-resume {
+    font-size: 1.7rem; font-weight: 800; color: var(--bleu); text-align: center; margin-bottom: 8px;
+  }
+  .resume .ligne {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 9px 0; border-top: 1px solid var(--bord);
+  }
+  .resume .ligne span { color: var(--doux); font-size: .85rem; }
+  .resume .ligne b { font-family: var(--mono); font-size: 1.05rem; }
+
+  /* ---------- Réglages ---------- */
   dialog {
-    width: min(480px, calc(100% - 32px)); border: 1px solid var(--bord); border-radius: 12px;
-    background: var(--carte); color: var(--texte); padding: 20px;
+    width: min(480px, calc(100% - 32px)); border: 1px solid var(--bord); border-radius: 20px;
+    background: var(--carte); color: var(--texte); padding: 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
   }
-  dialog::backdrop { background: rgba(0,0,0,.5); }
-  dialog h2 { margin-top: 0; font-size: 1.1rem; }
-  dialog .champ input { font-size: 1rem; font-weight: 400; }
+  dialog::backdrop { background: rgba(10, 14, 20, .55); backdrop-filter: blur(2px); }
+  dialog h2 { margin: 0 0 16px; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+  dialog .champ { margin-bottom: 12px; }
+  dialog .champ input { font-family: inherit; font-size: 1rem; font-weight: 500; }
+  .aide { color: var(--doux); font-size: .82rem; text-align: center; margin: 10px 0 0; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>📷 Carte Machine</h1>
-  <button id="btnReglages" title="Réglages" aria-label="Réglages">⚙️</button>
+  <img src="icons/icon-192.png" alt="">
+  <div class="titre">
+    <h1>Cartes Machines</h1>
+    <p>Curing Specification</p>
+  </div>
+  <button class="icone-btn" id="btnReglages" title="Réglages" aria-label="Réglages">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
 </header>
 
 <main>
 
   <!-- 1. PHOTO -->
   <section id="ecranPhoto">
-    <label class="gros-bouton" for="inputPhoto">
-      <span>📸</span>
-      Prendre la photo
+    <label class="scanner" for="inputPhoto">
+      <span class="coins"><i></i><i></i><i></i><i></i></span>
+      <span class="rond">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </span>
+      <strong>Photographier une carte</strong>
+      <small>Cadrez toute la fiche, bien droite, sans reflet sur le plastique.</small>
     </label>
     <input type="file" id="inputPhoto" accept="image/*" capture="environment" hidden>
-    <p class="aide">Cadrez la fiche « Curing Specification » en entier,<br>en évitant les reflets.</p>
-    <button class="bouton" id="btnManuel">✏️ Saisir à la main</button>
+
+    <div class="etapes">
+      <div><b>1</b>Photo</div>
+      <div><b>2</b>Vérifier</div>
+      <div><b>3</b>Envoyer</div>
+    </div>
+
+    <button class="bouton" id="btnManuel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+      Saisir à la main
+    </button>
+
+    <h3 class="titre-section">Envoyées depuis ce téléphone</h3>
+    <div class="bloc recents" id="recents"></div>
   </section>
 
   <!-- 2. ANALYSE -->
   <section id="ecranAnalyse" hidden>
     <div class="bloc">
-      <img id="apercu" class="apercu" alt="Photo de la carte">
+      <div class="cadre-photo">
+        <img id="apercu" alt="Photo de la carte">
+        <span class="ligne-scan"></span>
+      </div>
       <div class="progression"><div id="barre"></div></div>
       <p class="statut" id="statut">Préparation…</p>
     </div>
@@ -133,30 +330,42 @@
   <!-- 3. VÉRIFICATION -->
   <section id="ecranVerif" hidden>
     <form class="bloc" id="formVerif" autocomplete="off">
-      <div class="champ" data-champ="presse">
-        <label for="f-presse">Presse <span class="badge"></span></label>
-        <input id="f-presse" name="presse" required>
-      </div>
-      <div class="champ" data-champ="spec">
-        <label for="f-spec">Specification Code (fin) <span class="badge"></span></label>
-        <input id="f-spec" name="spec" inputmode="numeric">
-      </div>
-      <div class="champ" data-champ="bladderCode">
-        <label for="f-bladderCode">BladderCode <span class="badge"></span></label>
-        <input id="f-bladderCode" name="bladderCode" inputmode="numeric">
-      </div>
-      <div class="champ" data-champ="bladderType">
-        <label for="f-bladderType">BladderType <span class="badge"></span></label>
-        <input id="f-bladderType" name="bladderType">
-      </div>
-      <div class="champ" id="champBladderDate">
-        <label for="f-bladderDate">Date de la bladder <span class="badge">à saisir</span></label>
-        <input id="f-bladderDate" name="bladderDate" inputmode="numeric" maxlength="4" pattern="\d{4}" title="Code à 4 chiffres">
-
+      <div class="entete-verif">
+        <img id="miniature" alt="Photo" hidden>
+        <div>
+          <h2>Vérifiez les informations</h2>
+          <p>Corrigez si besoin avant d'envoyer.</p>
+        </div>
       </div>
 
-      <button type="submit" class="bouton principal" id="btnEnregistrer">✅ Enregistrer</button>
-      <button type="button" class="bouton" id="btnRecommencer">↺ Reprendre une photo</button>
+      <div class="grille">
+        <div class="champ grand large" data-champ="presse">
+          <label for="f-presse">Presse <span class="badge"></span></label>
+          <input id="f-presse" name="presse" required autocapitalize="characters">
+        </div>
+        <div class="champ large" data-champ="spec">
+          <label for="f-spec">Specification Code (fin) <span class="badge"></span></label>
+          <input id="f-spec" name="spec" inputmode="numeric">
+        </div>
+        <div class="champ" data-champ="bladderCode">
+          <label for="f-bladderCode">BladderCode <span class="badge"></span></label>
+          <input id="f-bladderCode" name="bladderCode" inputmode="numeric">
+        </div>
+        <div class="champ" data-champ="bladderType">
+          <label for="f-bladderType">BladderType <span class="badge"></span></label>
+          <input id="f-bladderType" name="bladderType" autocapitalize="characters">
+        </div>
+        <div class="champ large" id="champBladderDate">
+          <label for="f-bladderDate">Date de la bladder <span class="badge">manuel</span></label>
+          <input id="f-bladderDate" name="bladderDate" inputmode="numeric" maxlength="4" pattern="\d{4}" title="Code à 4 chiffres">
+        </div>
+      </div>
+
+      <button type="submit" class="bouton principal" id="btnEnregistrer">Enregistrer</button>
+      <button type="button" class="bouton discret" id="btnRecommencer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Reprendre une photo
+      </button>
       <div id="messageVerif"></div>
 
       <details id="detailsTexte">
@@ -169,11 +378,19 @@
   <!-- 4. TERMINÉ -->
   <section id="ecranOK" hidden>
     <div class="bloc">
-      <p class="grand-ok">✅</p>
+      <div class="succes">
+        <div class="coche">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h2>Carte enregistrée</h2>
+        <p>Elle apparaîtra sur le PC d'ici une à deux minutes.</p>
+      </div>
       <div class="resume" id="resume"></div>
-      <div class="message ok">Enregistré. La pop-up s'affichera sur le PC d'ici une à deux minutes.</div>
     </div>
-    <button class="bouton principal" id="btnNouvelle">📸 Nouvelle carte</button>
+    <button class="bouton principal" id="btnNouvelle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Nouvelle carte
+    </button>
   </section>
 
 </main>
@@ -181,30 +398,30 @@
 <!-- RÉGLAGES -->
 <dialog id="dlgReglages">
   <form method="dialog" id="formReglages">
-    <h2>⚙️ Réglages GitHub</h2>
+    <h2>Réglages GitHub</h2>
     <div class="champ">
       <label for="r-compte">Compte GitHub</label>
-      <input id="r-compte" name="compte" placeholder="mon-compte" autocapitalize="off" spellcheck="false">
+      <input id="r-compte" name="compte" autocapitalize="off" spellcheck="false">
     </div>
     <div class="champ">
       <label for="r-depot">Dépôt</label>
-      <input id="r-depot" name="depot" placeholder="cartes-machines" autocapitalize="off" spellcheck="false">
+      <input id="r-depot" name="depot" autocapitalize="off" spellcheck="false">
     </div>
     <div class="champ">
       <label for="r-branche">Branche</label>
-      <input id="r-branche" name="branche" placeholder="main" autocapitalize="off" spellcheck="false">
+      <input id="r-branche" name="branche" autocapitalize="off" spellcheck="false">
     </div>
     <div class="champ">
       <label for="r-fichier">Fichier de données</label>
-      <input id="r-fichier" name="fichier" placeholder="presses.json" autocapitalize="off" spellcheck="false">
+      <input id="r-fichier" name="fichier" autocapitalize="off" spellcheck="false">
     </div>
     <div class="champ">
       <label for="r-token">Token (Contents : lecture et écriture)</label>
-      <input id="r-token" name="token" type="password" placeholder="github_pat_…" autocapitalize="off" spellcheck="false">
+      <input id="r-token" name="token" type="password" autocapitalize="off" spellcheck="false">
     </div>
     <p class="aide">Ces réglages restent uniquement sur ce téléphone.</p>
     <button class="bouton principal" value="ok">Enregistrer</button>
-    <button class="bouton" value="annuler" formnovalidate>Annuler</button>
+    <button class="bouton discret" value="annuler" formnovalidate>Annuler</button>
   </form>
 </dialog>
 
@@ -258,7 +475,80 @@
         ecrans.forEach(function (e) {
             document.getElementById(e).hidden = (e !== id);
         });
+        if (id === 'ecranPhoto') afficherRecents();
         window.scrollTo(0, 0);
+    }
+
+    // =========================
+    // DERNIÈRES CARTES ENVOYÉES (mémoire du téléphone)
+    // =========================
+
+    const CLE_RECENTS = 'carteMachine.recents';
+
+    function lireRecents() {
+        try {
+            const r = JSON.parse(localStorage.getItem(CLE_RECENTS) || '[]');
+            return Array.isArray(r) ? r : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function ajouterRecent(fiche) {
+        const liste = lireRecents().filter(function (r) { return r.cle !== fiche.cle; });
+        liste.unshift(fiche);
+        try {
+            localStorage.setItem(CLE_RECENTS, JSON.stringify(liste.slice(0, 5)));
+        } catch (e) { /* mémoire indisponible : sans importance */ }
+    }
+
+    function heureCourte(iso) {
+        const d = new Date(iso);
+        const auj = new Date();
+        const memeJour = d.toDateString() === auj.toDateString();
+        return memeJour
+            ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            : d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    }
+
+    function afficherRecents() {
+
+        const conteneur = document.getElementById('recents');
+        conteneur.innerHTML = '';
+
+        const liste = lireRecents();
+
+        if (!liste.length) {
+            const p = document.createElement('p');
+            p.className = 'vide';
+            p.textContent = 'Aucune carte envoyée pour l\'instant.';
+            conteneur.appendChild(p);
+            return;
+        }
+
+        liste.forEach(function (f) {
+
+            const ligne = document.createElement('div');
+            ligne.className = 'recent';
+
+            const pastille = document.createElement('span');
+            pastille.className = 'pastille';
+            pastille.textContent = (f.presse || '?').replace(/[^A-Z]/gi, '').slice(0, 2).toUpperCase() || '#';
+
+            const infos = document.createElement('div');
+            infos.className = 'infos';
+            const b = document.createElement('b');
+            b.textContent = f.presse;
+            const s = document.createElement('span');
+            s.textContent = [f.spec, f.bladderCode, f.bladderType, f.bladderDate].filter(Boolean).join(' · ') || '—';
+            infos.append(b, s);
+
+            const t = document.createElement('time');
+            t.textContent = heureCourte(f.date);
+
+            ligne.append(pastille, infos, t);
+            conteneur.appendChild(ligne);
+        });
     }
 
     // =========================
@@ -454,6 +744,7 @@
     const statut = document.getElementById('statut');
 
     let lecteur = null;
+    let urlPhoto = null;
 
     async function obtenirLecteur() {
         if (!lecteur) lecteur = await Tesseract.createWorker('eng');
@@ -489,7 +780,9 @@
 
         afficher('ecranAnalyse');
 
-        document.getElementById('apercu').src = URL.createObjectURL(fichier);
+        if (urlPhoto) URL.revokeObjectURL(urlPhoto);
+        urlPhoto = URL.createObjectURL(fichier);
+        document.getElementById('apercu').src = urlPhoto;
 
         const infos = { presse: '', spec: '', bladderCode: '', bladderType: '' };
         const textes = [];
@@ -641,12 +934,17 @@
                 badge.textContent = '';
             } else if (infos[cle]) {
                 bloc.classList.add('trouve');
-                badge.textContent = '✓ lu — à vérifier';
+                badge.textContent = '✓ lu';
             } else {
                 bloc.classList.add('manquant');
-                badge.textContent = '⚠ non trouvé';
+                badge.textContent = '⚠ à saisir';
             }
         });
+
+        // Miniature de la photo pour comparer (absente en saisie manuelle).
+        const miniature = document.getElementById('miniature');
+        miniature.hidden = (texteBrut === null || !urlPhoto);
+        if (!miniature.hidden) miniature.src = urlPhoto;
 
         // Date de la bladder : jamais sur la carte, toujours saisie à la main.
         document.getElementById('f-bladderDate').value = '';
@@ -689,25 +987,26 @@
         const reglages = lireReglages();
 
         if (!reglagesComplets(reglages)) {
-            afficherMessage(messageVerif, 'Complétez d\'abord les réglages GitHub (⚙️ en haut à droite).', 'erreur');
+            afficherMessage(messageVerif, 'Complétez d\'abord les réglages GitHub (roue dentée en haut à droite).', 'erreur');
             ouvrirReglages();
             return;
         }
 
         const bouton = document.getElementById('btnEnregistrer');
         bouton.disabled = true;
-        bouton.textContent = '⏳ Envoi…';
+        bouton.textContent = 'Envoi…';
         afficherMessage(messageVerif, '', '');
 
         try {
             await enregistrerSurGitHub(fiche, reglages);
+            ajouterRecent(fiche);
             afficherConfirmation(fiche);
         } catch (e) {
             console.error(e);
             afficherMessage(messageVerif, 'Échec de l\'enregistrement : ' + e.message, 'erreur');
         } finally {
             bouton.disabled = false;
-            bouton.textContent = '✅ Enregistrer';
+            bouton.textContent = 'Enregistrer';
         }
     });
 
@@ -716,19 +1015,25 @@
         const resume = document.getElementById('resume');
         resume.innerHTML = '';
 
+        const presse = document.createElement('div');
+        presse.className = 'presse-resume';
+        presse.textContent = fiche.presse;
+        resume.appendChild(presse);
+
         [
-            ['Presse', fiche.presse],
-            ['Spec', fiche.spec],
+            ['Specification Code', fiche.spec],
             ['BladderCode', fiche.bladderCode],
             ['BladderType', fiche.bladderType],
             ['Date bladder', fiche.bladderDate]
-        ].forEach(function (ligne) {
-            const div = document.createElement('div');
-            div.append(ligne[0] + ' : ');
+        ].forEach(function (l) {
+            const ligne = document.createElement('div');
+            ligne.className = 'ligne';
+            const span = document.createElement('span');
+            span.textContent = l[0];
             const b = document.createElement('b');
-            b.textContent = ligne[1] || '—';
-            div.appendChild(b);
-            resume.appendChild(div);
+            b.textContent = l[1] || '—';
+            ligne.append(span, b);
+            resume.appendChild(ligne);
         });
 
         afficher('ecranOK');
@@ -893,6 +1198,13 @@
     document.getElementById('btnNouvelle').addEventListener('click', function () {
         afficher('ecranPhoto');
     });
+
+    // Toucher la miniature : ouvre la photo en grand.
+    document.getElementById('miniature').addEventListener('click', function () {
+        if (urlPhoto) window.open(urlPhoto, '_blank');
+    });
+
+    afficherRecents();
 
     // Premier lancement : on ouvre directement les réglages.
     if (!reglagesComplets(lireReglages())) {
