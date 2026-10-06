@@ -1,13 +1,6 @@
 {
   "maj": "2026-10-06T17:25:36.794Z",
   "presses": {
-    "2/8D": {
-      "presse": "2/8D",
-      "spec": "132369",
-      "bladderCode": "5039",
-      "bladderType": "",
-      "date": "2026-10-06T16:57:00.803Z"
-    },
     "5/6": {
       "presse": "5/6",
       "spec": "149582",
@@ -26,14 +19,6 @@
       "bladderType": "TU 5 V1",
       "bladderDate": "2356",
       "date": "2026-10-06T17:12:15.223Z"
-    },
-    {
-      "cle": "2/8D",
-      "presse": "2/8D",
-      "spec": "132369",
-      "bladderCode": "5039",
-      "bladderType": "",
-      "date": "2026-10-06T16:57:00.803Z"
     }
   ]
 }
