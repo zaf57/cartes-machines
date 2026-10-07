@@ -16,26 +16,9 @@
       "bladderType": "",
       "bladderDate": "0626",
       "date": "2026-10-07T01:10:20.115Z"
-    },
-    "TEST": {
-      "presse": "TEST",
-      "spec": "",
-      "bladderCode": "",
-      "bladderType": "",
-      "bladderDate": "",
-      "date": "2026-10-07T01:21:57.791Z"
     }
   },
   "historique": [
-    {
-      "cle": "TEST",
-      "presse": "TEST",
-      "spec": "",
-      "bladderCode": "",
-      "bladderType": "",
-      "bladderDate": "",
-      "date": "2026-10-07T01:21:57.791Z"
-    },
     {
       "cle": "VL345G",
       "presse": "VL 345 G",
