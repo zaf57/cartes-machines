@@ -1,24 +1,5 @@
 {
   "maj": "2026-10-07T01:21:57.791Z",
-  "presses": {
-    "VL136G": {
-      "presse": "VL 136 G",
-      "spec": "149582",
-      "bladderCode": "0702",
-      "bladderType": "TU5V1",
-      "bladderDate": "1226",
-      "date": "2026-10-06T18:28:44.374Z"
-    }
-  },
-  "historique": [
-    {
-      "cle": "VL136G",
-      "presse": "VL 136 G",
-      "spec": "149582",
-      "bladderCode": "0702",
-      "bladderType": "TU5V1",
-      "bladderDate": "1226",
-      "date": "2026-10-06T18:28:44.374Z"
-    }
-  ]
+  "presses": {},
+  "historique": []
 }
