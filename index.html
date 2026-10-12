@@ -106,7 +106,7 @@
   .scanner {
     position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 14px; width: 100%; min-height: 300px; padding: 28px 16px;
-    border-radius: 22px; cursor: pointer; overflow: hidden;
+    border-radius: 22px; cursor: pointer; overflow: hidden; border: 0; font: inherit;
     color: #fff; text-align: center;
     background:
       radial-gradient(120% 80% at 50% 0%, rgba(234, 122, 18, .22), transparent 60%),
@@ -272,6 +272,54 @@
   dialog .champ input { font-family: inherit; font-size: 1rem; font-weight: 500; }
   .aide { color: var(--doux); font-size: .82rem; text-align: center; margin: 10px 0 0; }
 
+  /* ---------- Scan en direct ---------- */
+  .camera { position: fixed; inset: 0; z-index: 30; background: #000; overflow: hidden; }
+  .camera video, .camera canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .camera video { object-fit: cover; }
+  .cam-haut {
+    position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px;
+    padding: calc(12px + env(safe-area-inset-top)) 12px 30px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, .7), transparent);
+  }
+  .cam-btn {
+    display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%;
+    border: 0; background: rgba(255, 255, 255, .16); color: #fff; cursor: pointer;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .cam-btn[hidden] { display: none; }
+  .cam-btn svg { width: 22px; height: 22px; }
+  .cam-btn.actif { background: var(--accent); }
+  .consigne {
+    flex: 1; text-align: center; color: #fff; font-weight: 700; font-size: 1rem; line-height: 1.3;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .7);
+  }
+  .cam-bas {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 34px 14px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, rgba(0, 0, 0, .8) 40%, transparent);
+  }
+  .puces { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .puce {
+    padding: 8px 10px; border-radius: 12px; color: #fff;
+    background: rgba(20, 24, 30, .72); border: 1px solid rgba(255, 255, 255, .14);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    transition: background .25s ease, border-color .25s ease;
+  }
+  .puce span { display: block; font-size: .66rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #aab4c0; }
+  .puce b {
+    display: block; font-family: var(--mono); font-size: 1.05rem; color: #8b95a3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .puce.lu b { color: #fff; }
+  .puce.ok { background: rgba(21, 128, 61, .85); border-color: #4ade80; }
+  .puce.ok span { color: #d1fae5; }
+  .puce.ok b { color: #fff; }
+  .puce.ok b::before { content: '✓ '; }
+  .cam-bas .bouton {
+    margin-top: 10px; padding: 13px; background: rgba(255, 255, 255, .14); color: #fff;
+    border-color: rgba(255, 255, 255, .22); box-shadow: none;
+  }
+
   /* ---------- Liste des presses ---------- */
   .barre-retour { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
   .barre-retour h2 { flex: 1; margin: 0; font-size: 1.15rem; }
@@ -345,21 +393,26 @@
 
   <!-- 1. PHOTO -->
   <section id="ecranPhoto">
-    <label class="scanner" for="inputPhoto">
+    <button class="scanner" id="btnScanDirect" type="button">
       <span class="coins"><i></i><i></i><i></i><i></i></span>
       <span class="rond">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
       </span>
-      <strong>Photographier une carte</strong>
-      <small>Cadrez toute la fiche, bien droite, sans reflet sur le plastique.</small>
-    </label>
+      <strong>Scanner une carte</strong>
+      <small>Visez la carte : les informations sont lues en direct.</small>
+    </button>
     <input type="file" id="inputPhoto" accept="image/*" capture="environment" hidden>
 
     <div class="etapes">
-      <div><b>1</b>Photo</div>
+      <div><b>1</b>Viser</div>
       <div><b>2</b>Vérifier</div>
       <div><b>3</b>Envoyer</div>
     </div>
+
+    <label class="bouton" for="inputPhoto">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      Prendre ou importer une photo
+    </label>
 
     <button class="bouton" id="btnManuel">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
@@ -373,6 +426,34 @@
 
     <h3 class="titre-section">Envoyées depuis ce téléphone</h3>
     <div class="bloc recents" id="recents"></div>
+  </section>
+
+  <!-- SCAN EN DIRECT -->
+  <section id="ecranCamera" hidden>
+    <div class="camera">
+      <video id="video" playsinline muted autoplay></video>
+      <canvas id="calque"></canvas>
+
+      <div class="cam-haut">
+        <button class="cam-btn" id="btnFermerCam" type="button" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+        <div class="consigne" id="consigne">Démarrage de la caméra…</div>
+        <button class="cam-btn" id="btnLampe" type="button" aria-label="Lampe" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </button>
+      </div>
+
+      <div class="cam-bas">
+        <div class="puces">
+          <div class="puce" data-puce="presse"><span>Presse</span><b>…</b></div>
+          <div class="puce" data-puce="spec"><span>Spec</span><b>…</b></div>
+          <div class="puce" data-puce="bladderCode"><span>BladderCode</span><b>…</b></div>
+          <div class="puce" data-puce="bladderType"><span>BladderType</span><b>…</b></div>
+        </div>
+        <button class="bouton" id="btnValiderCam" type="button">Continuer avec ce qui est lu</button>
+      </div>
+    </div>
   </section>
 
   <!-- 2. ANALYSE -->
@@ -424,7 +505,7 @@
       <button type="submit" class="bouton principal" id="btnEnregistrer">Enregistrer</button>
       <button type="button" class="bouton discret" id="btnRecommencer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-        Reprendre une photo
+        Recommencer
       </button>
       <div id="messageVerif"></div>
 
@@ -576,12 +657,13 @@
     // NAVIGATION ENTRE ÉCRANS
     // =========================
 
-    const ecrans = ['ecranPhoto', 'ecranAnalyse', 'ecranVerif', 'ecranOK', 'ecranPresses'];
+    const ecrans = ['ecranPhoto', 'ecranAnalyse', 'ecranVerif', 'ecranOK', 'ecranPresses', 'ecranCamera'];
 
     function afficher(id) {
         ecrans.forEach(function (e) {
             document.getElementById(e).hidden = (e !== id);
         });
+        if (id !== 'ecranCamera') arreterCamera();
         if (id === 'ecranPhoto') afficherRecents();
         window.scrollTo(0, 0);
     }
@@ -743,6 +825,161 @@
     }
 
     // =========================
+    // REPÈRE BLEU « VL … » ET ZONES DE LA CARTE
+    // =========================
+
+    // Le grand "VL 136 G" est le seul texte bleu vif de la carte. On le
+    // retrouve par sa couleur (quelques millisecondes, sans OCR). Comme
+    // la carte a toujours la même mise en page, sa position et sa taille
+    // donnent l'emplacement des autres informations.
+    const petitCanvas = document.createElement('canvas');
+
+    function trouverRepereBleu(source, W, H) {
+
+        const LARG = 320;
+        const ech = LARG / W;
+        const haut = Math.max(1, Math.round(H * ech));
+
+        petitCanvas.width = LARG;
+        petitCanvas.height = haut;
+        const ctx = petitCanvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(source, 0, 0, LARG, haut);
+        const d = ctx.getImageData(0, 0, LARG, haut).data;
+
+        // Grille de cases de 4 px : une case est "bleue" si elle contient
+        // au moins 2 pixels bleus.
+        const T = 4, gw = Math.ceil(LARG / T), gh = Math.ceil(haut / T);
+        const compte = new Uint8Array(gw * gh);
+
+        for (let y = 0; y < haut; y++) {
+            for (let x = 0; x < LARG; x++) {
+                const i = (y * LARG + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+                if (b > 90 && b - r > 50 && b - g > 30) compte[((y / T) | 0) * gw + ((x / T) | 0)]++;
+            }
+        }
+
+        const bleu = new Uint8Array(gw * gh);
+        for (let i = 0; i < bleu.length; i++) bleu[i] = compte[i] >= 2 ? 1 : 0;
+
+        // Devient vrai si on voit de très grandes lettres bleues isolées :
+        // la carte est trop près (lettres trop grandes et trop espacées).
+        trouverRepereBleu.tropPres = false;
+
+        // On "épaissit" horizontalement pour relier les lettres d'un même mot.
+        const relie = new Uint8Array(gw * gh);
+        for (let y = 0; y < gh; y++) {
+            for (let x = 0; x < gw; x++) {
+                if (!bleu[y * gw + x]) continue;
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -3; dx <= 3; dx++) {
+                        const yy = y + dy, xx = x + dx;
+                        if (yy >= 0 && yy < gh && xx >= 0 && xx < gw) relie[yy * gw + xx] = 1;
+                    }
+                }
+            }
+        }
+
+        // Groupes de cases voisines ; on garde celui qui ressemble à une
+        // ligne de texte (plus large que haut, ni trop plein ni trop vide).
+        const vu = new Uint8Array(gw * gh);
+        let meilleur = null;
+
+        for (let depart = 0; depart < relie.length; depart++) {
+
+            if (!relie[depart] || vu[depart]) continue;
+
+            const pile = [depart];
+            vu[depart] = 1;
+            let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, nb = 0;
+
+            while (pile.length) {
+                const q = pile.pop(), qy = (q / gw) | 0, qx = q % gw;
+                if (bleu[q]) {
+                    nb++;
+                    if (qx < x0) x0 = qx;
+                    if (qx > x1) x1 = qx;
+                    if (qy < y0) y0 = qy;
+                    if (qy > y1) y1 = qy;
+                }
+                if (qx > 0 && relie[q - 1] && !vu[q - 1]) { vu[q - 1] = 1; pile.push(q - 1); }
+                if (qx < gw - 1 && relie[q + 1] && !vu[q + 1]) { vu[q + 1] = 1; pile.push(q + 1); }
+                if (qy > 0 && relie[q - gw] && !vu[q - gw]) { vu[q - gw] = 1; pile.push(q - gw); }
+                if (qy < gh - 1 && relie[q + gw] && !vu[q + gw]) { vu[q + gw] = 1; pile.push(q + gw); }
+            }
+
+            if (x1 < 0) continue;
+
+            const lw = x1 - x0 + 1, lh = y1 - y0 + 1;
+            const forme = lw / lh, densite = nb / (lw * lh);
+
+            if (lw < 6 || forme < 2.5 || forme > 10 || densite < 0.15 || densite > 0.8) {
+                if (nb >= 20 && lh >= 10) trouverRepereBleu.tropPres = true;
+                continue;
+            }
+
+            if (!meilleur || nb > meilleur.nb) {
+                meilleur = {
+                    nb: nb,
+                    x0: x0 * T / ech, y0: y0 * T / ech,
+                    x1: (x1 + 1) * T / ech, y1: (y1 + 1) * T / ech
+                };
+            }
+        }
+
+        return meilleur;
+    }
+
+    // Zones à lire, calculées à partir du repère (coordonnées de l'image).
+    // "visible" : la zone est presque entièrement dans l'image.
+    function zonesDepuisRepere(b, W, H) {
+
+        const L = b.x1 - b.x0, Hr = b.y1 - b.y0;
+
+        const brutes = {
+            presse: { x: b.x0 - 0.08 * L, y: b.y0 - 0.25 * Hr, w: 1.16 * L, h: 1.5 * Hr,
+                      agrandi: borne(55 / Hr, 0.4, 3), mode: '7' },
+            bladder: { x: b.x0 + 0.05 * L, y: b.y0 - 0.40 * L, w: 0.95 * L, h: 0.25 * L,
+                       agrandi: borne(60 / (0.035 * L), 1, 4), mode: '6' },
+            spec: { x: b.x0 - 0.45 * L, y: b.y0 - 2.4 * L, w: 1.5 * L, h: 0.45 * L,
+                    agrandi: borne(32 / (0.043 * L), 1, 4), mode: '6' }
+        };
+
+        Object.keys(brutes).forEach(function (nom) {
+            const z = brutes[nom];
+            const x0 = Math.max(0, z.x), y0 = Math.max(0, z.y);
+            const x1 = Math.min(W, z.x + z.w), y1 = Math.min(H, z.y + z.h);
+            const surface = Math.max(0, x1 - x0) * Math.max(0, y1 - y0);
+            z.visible = surface >= 0.85 * z.w * z.h;
+            z.coupe = { haut: z.y < 0, bas: z.y + z.h > H, gauche: z.x < 0, droite: z.x + z.w > W };
+            z.lecture = { x: x0, y: y0, w: Math.max(1, x1 - x0), h: Math.max(1, y1 - y0) };
+        });
+
+        return brutes;
+    }
+
+    function borne(v, min, max) {
+        return Math.min(max, Math.max(min, v));
+    }
+
+    // Champs lus dans chaque zone.
+    const CHAMPS_DES_ZONES = {
+        presse: ['presse'],
+        bladder: ['bladderCode', 'bladderType'],
+        spec: ['spec']
+    };
+
+    // Lit une zone (en gris puis, si besoin, en noir et blanc).
+    async function lireZone(source, zone, nom, noirBlanc) {
+        let c = decouper(source, zone.lecture, zone.agrandi);
+        if (noirBlanc) c = noirEtBlanc(c);
+        const lu = await lire(c, zone.mode);
+        const infos = extraireInfos(lu.text || '');
+        const resultat = {};
+        CHAMPS_DES_ZONES[nom].forEach(function (ch) { resultat[ch] = infos[ch]; });
+        return { infos: resultat, specSur: infos.specSur, texte: '[' + nom + '] ' + (lu.text || '').trim() };
+    }
+
+    // =========================
     // EXTRACTION DES INFORMATIONS
     // =========================
 
@@ -816,6 +1053,10 @@
             }
         }
 
+        // Spec sûre = les deux derniers nombres concordent. Sinon, valeur
+        // seulement plausible (à vérifier). Propriété non énumérée pour ne
+        // pas être prise pour un champ du formulaire.
+        Object.defineProperty(infos, 'specSur', { value: !!infos.spec, writable: true });
         if (!infos.spec) infos.spec = specPlausible;
 
         // --- BladderCode : "0702" ------------------------------------
@@ -904,12 +1145,36 @@
 
         const infos = { presse: '', spec: '', bladderCode: '', bladderType: '' };
         const textes = [];
+        let specDouteuse = '';
 
         try {
             etape(5, 'Chargement du lecteur…');
 
             const image = await createImageBitmap(fichier);
             await obtenirLecteur();
+
+            // --- Méthode rapide : repère bleu + lecture des 3 zones ------
+            const repere = trouverRepereBleu(image, image.width, image.height);
+
+            if (repere) {
+                const zones = zonesDepuisRepere(repere, image.width, image.height);
+                const noms = Object.keys(zones);
+                for (let i = 0; i < noms.length; i++) {
+                    const nom = noms[i];
+                    if (CHAMPS_DES_ZONES[nom].every(function (ch) { return infos[ch]; })) continue;
+                    etape(10 + i * 12, 'Lecture de la zone ' + (i + 1) + '/3…');
+                    for (const noirBlanc of [false, true]) {
+                        if (CHAMPS_DES_ZONES[nom].every(function (ch) { return infos[ch]; })) break;
+                        const r = await lireZone(image, zones[nom], nom, noirBlanc);
+                        textes.push(r.texte);
+                        if (nom === 'spec' && r.infos.spec && !r.specSur) {
+                            specDouteuse = specDouteuse || r.infos.spec;
+                            continue;
+                        }
+                        completer(infos, r.infos, CHAMPS_DES_ZONES[nom]);
+                    }
+                }
+            }
 
             const echelle = Math.min(3200 / Math.max(image.width, image.height), 2.5);
 
@@ -923,7 +1188,7 @@
 
             for (let i = 0; i < essaisPhoto.length && !complet(infos); i++) {
 
-                etape(15 + i * 40, essaisPhoto[i].nom);
+                etape(45 + i * 25, essaisPhoto[i].nom);
 
                 const entiere = essaisPhoto[i].preparer(
                     decouper(image, { x: 0, y: 0, w: image.width, h: image.height }, echelle)
@@ -1008,6 +1273,7 @@
             etape(100, 'Terminé');
 
         } catch (e) {
+            specDouteuse = '';
             console.error(e);
             afficherVerification(
                 infos,
@@ -1017,7 +1283,13 @@
             return;
         }
 
-        afficherVerification(infos, textes.join('\n-----\n'));
+        const douteux = [];
+        if (!infos.spec && specDouteuse) {
+            infos.spec = specDouteuse;
+            douteux.push('spec');
+        }
+
+        afficherVerification(infos, textes.join('\n-----\n'), '', douteux);
     }
 
     // =========================
@@ -1036,7 +1308,7 @@
         conteneur.appendChild(div);
     }
 
-    function afficherVerification(infos, texteBrut, erreur) {
+    function afficherVerification(infos, texteBrut, erreur, douteux) {
 
         Object.keys(infos).forEach(function (cle) {
 
@@ -1050,6 +1322,9 @@
 
             if (texteBrut === null) {
                 badge.textContent = '';
+            } else if (infos[cle] && douteux && douteux.indexOf(cle) !== -1) {
+                bloc.classList.add('manquant');
+                badge.textContent = '? à vérifier';
             } else if (infos[cle]) {
                 bloc.classList.add('trouve');
                 badge.textContent = '✓ lu';
@@ -1302,6 +1577,373 @@
 
     const dlg = document.getElementById('dlgReglages');
     const formReglages = document.getElementById('formReglages');
+
+    // =========================
+    // SCAN EN DIRECT (caméra)
+    // =========================
+
+    // Deux boucles tournent en parallèle :
+    //  - le SUIVI (~8 fois par seconde) : cherche le repère bleu, calcule
+    //    les zones, dessine les cadres et donne les consignes de cadrage ;
+    //  - la LECTURE : lit une zone à la fois (OCR) dans l'image la plus
+    //    récente. Une valeur est retenue dès qu'elle a été lue deux fois
+    //    à l'identique.
+
+    const video = document.getElementById('video');
+    const calque = document.getElementById('calque');
+    const consigneEl = document.getElementById('consigne');
+    const btnLampe = document.getElementById('btnLampe');
+    const imageCamera = document.createElement('canvas');
+
+    const CHAMPS = ['presse', 'spec', 'bladderCode', 'bladderType'];
+
+    let flux = null;
+    let scanActif = false;
+    let lampeAllumee = false;
+    let scan = null;
+
+    function nouveauScan() {
+        return {
+            votes: {}, valeurs: {}, retenus: {},
+            textes: [], tour: 0,
+            repere: null, zones: null, W: 0, H: 0,
+            lecteurPret: false
+        };
+    }
+
+    function pause(ms) {
+        return new Promise(function (r) { setTimeout(r, ms); });
+    }
+
+    function consigne(texte) {
+        if (consigneEl.textContent !== texte) consigneEl.textContent = texte;
+    }
+
+    function zoneTerminee(nom) {
+        return CHAMPS_DES_ZONES[nom].every(function (ch) { return scan.retenus[ch]; });
+    }
+
+    async function demarrerScan() {
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            montrerToast('Caméra indisponible : utilisez « Prendre une photo »');
+            return;
+        }
+
+        scan = nouveauScan();
+        majPuces();
+        afficher('ecranCamera');
+        consigne('Démarrage de la caméra…');
+
+        try {
+            flux = await navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            });
+        } catch (e) {
+            console.error(e);
+            afficher('ecranPhoto');
+            montrerToast(e.name === 'NotAllowedError'
+                ? 'Accès à la caméra refusé : autorisez-le dans le navigateur'
+                : 'Caméra indisponible : utilisez « Prendre une photo »');
+            return;
+        }
+
+        // L'utilisateur a pu fermer l'écran pendant la demande d'accès.
+        if (document.getElementById('ecranCamera').hidden) {
+            arreterCamera();
+            return;
+        }
+
+        video.srcObject = flux;
+        try { await video.play(); } catch (e) { /* lecture auto déjà en cours */ }
+
+        const piste = flux.getVideoTracks()[0];
+        const capacites = piste.getCapabilities ? piste.getCapabilities() : {};
+
+        if (capacites.focusMode && capacites.focusMode.indexOf('continuous') !== -1) {
+            piste.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () {});
+        }
+
+        lampeAllumee = false;
+        btnLampe.classList.remove('actif');
+        btnLampe.hidden = !capacites.torch;
+
+        scanActif = true;
+        boucleSuivi();
+        boucleLecture();
+    }
+
+    function arreterCamera() {
+        scanActif = false;
+        if (flux) {
+            flux.getTracks().forEach(function (t) { t.stop(); });
+            flux = null;
+        }
+        video.srcObject = null;
+    }
+
+    // --- Boucle de suivi -------------------------------------------------
+
+    async function boucleSuivi() {
+        while (scanActif) {
+            suivre();
+            await pause(120);
+        }
+    }
+
+    function suivre() {
+
+        const W = video.videoWidth, H = video.videoHeight;
+        if (!W || !H) return;
+
+        if (imageCamera.width !== W || imageCamera.height !== H) {
+            imageCamera.width = W;
+            imageCamera.height = H;
+        }
+        imageCamera.getContext('2d').drawImage(video, 0, 0, W, H);
+
+        scan.W = W;
+        scan.H = H;
+        scan.repere = trouverRepereBleu(imageCamera, W, H);
+        scan.zones = scan.repere ? zonesDepuisRepere(scan.repere, W, H) : null;
+
+        dessinerCalque();
+        consigne(conseilCadrage());
+    }
+
+    function conseilCadrage() {
+
+        if (!scan.lecteurPret) return 'Préparation du lecteur…';
+        if (!scan.repere) {
+            return trouverRepereBleu.tropPres
+                ? 'Trop près : reculez un peu'
+                : 'Visez le grand repère bleu « VL … » de la carte';
+        }
+
+        const ratio = (scan.repere.x1 - scan.repere.x0) / scan.W;
+        if (ratio < 0.15) return 'Approchez-vous de la carte';
+        if (ratio > 0.65) return 'Reculez un peu';
+
+        // Zone encore à lire mais coupée : on dit dans quel sens bouger.
+        const coupees = Object.keys(scan.zones).filter(function (nom) {
+            return !zoneTerminee(nom) && !scan.zones[nom].visible;
+        });
+
+        if (coupees.length) {
+            const c = scan.zones[coupees[0]].coupe;
+            if (c.haut) return 'Le haut de la carte est coupé : reculez ou montez le téléphone';
+            if (c.bas) return 'Le bas de la carte est coupé : descendez le téléphone';
+            if (c.gauche) return 'Décalez le téléphone vers la gauche';
+            if (c.droite) return 'Décalez le téléphone vers la droite';
+        }
+
+        const nb = CHAMPS.filter(function (ch) { return scan.retenus[ch]; }).length;
+        return 'Ne bougez plus… ' + nb + '/4';
+    }
+
+    // --- Boucle de lecture -----------------------------------------------
+
+    async function boucleLecture() {
+
+        try {
+            await obtenirLecteur();
+        } catch (e) {
+            console.error(e);
+            consigne('Lecteur indisponible (connexion ?)');
+            return;
+        }
+
+        scan.lecteurPret = true;
+
+        while (scanActif) {
+
+            const zones = scan.zones;
+
+            const aLire = zones ? Object.keys(zones).filter(function (nom) {
+                return !zoneTerminee(nom) && zones[nom].visible;
+            }) : [];
+
+            const ratio = scan.repere ? (scan.repere.x1 - scan.repere.x0) / scan.W : 0;
+
+            if (!aLire.length || ratio < 0.15 || ratio > 0.65) {
+                await pause(150);
+                continue;
+            }
+
+            const nom = aLire[scan.tour % aLire.length];
+            const noirBlanc = Math.floor(scan.tour / aLire.length) % 2 === 1;
+            scan.tour++;
+
+            let r;
+            try {
+                r = await lireZone(imageCamera, zones[nom], nom, noirBlanc);
+            } catch (e) {
+                console.error(e);
+                await pause(300);
+                continue;
+            }
+
+            if (!scanActif) return;
+
+            scan.textes.push(r.texte);
+            scan.textes = scan.textes.slice(-12);
+
+            CHAMPS_DES_ZONES[nom].forEach(function (ch) {
+                voter(ch, r.infos[ch], ch === 'spec' && !r.specSur ? 0.5 : 1);
+            });
+            majPuces();
+
+            if (CHAMPS.every(function (ch) { return scan.retenus[ch]; })) {
+                terminerScan();
+                return;
+            }
+        }
+    }
+
+    // Une valeur est retenue à 2 points : deux lectures identiques (une
+    // lecture douteuse ne vaut qu'un demi-point).
+    function voter(champ, valeur, poids) {
+
+        if (!valeur || scan.retenus[champ]) return;
+
+        const v = scan.votes[champ] || (scan.votes[champ] = {});
+        v[valeur] = (v[valeur] || 0) + poids;
+
+        scan.valeurs[champ] = Object.keys(v).sort(function (a, b) { return v[b] - v[a]; })[0];
+
+        if (v[valeur] >= 2) {
+            scan.retenus[champ] = valeur;
+            scan.valeurs[champ] = valeur;
+            if (navigator.vibrate) navigator.vibrate(35);
+        }
+    }
+
+    function majPuces() {
+        CHAMPS.forEach(function (ch) {
+            const puce = document.querySelector('[data-puce="' + ch + '"]');
+            const valeur = scan && (scan.retenus[ch] || scan.valeurs[ch]);
+            puce.querySelector('b').textContent = valeur || '…';
+            puce.classList.toggle('ok', !!(scan && scan.retenus[ch]));
+            puce.classList.toggle('lu', !!valeur);
+        });
+    }
+
+    // --- Cadres dessinés par-dessus la vidéo -------------------------------
+
+    function dessinerCalque() {
+
+        const dpr = window.devicePixelRatio || 1;
+        const cw = calque.clientWidth, ch = calque.clientHeight;
+
+        if (calque.width !== Math.round(cw * dpr) || calque.height !== Math.round(ch * dpr)) {
+            calque.width = Math.round(cw * dpr);
+            calque.height = Math.round(ch * dpr);
+        }
+
+        const ctx = calque.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cw, ch);
+
+        if (!scan || !scan.W) return;
+
+        // La vidéo est affichée en "cover" : même calcul pour les cadres.
+        const e = Math.max(cw / scan.W, ch / scan.H);
+        const ox = (cw - scan.W * e) / 2, oy = (ch - scan.H * e) / 2;
+
+        function cadre(z, couleur, pointille) {
+            ctx.save();
+            ctx.strokeStyle = couleur;
+            ctx.lineWidth = 3;
+            ctx.setLineDash(pointille ? [8, 6] : []);
+            ctx.shadowColor = 'rgba(0, 0, 0, .5)';
+            ctx.shadowBlur = 4;
+            const x = ox + z.x * e, y = oy + z.y * e, w = z.w * e, h = z.h * e, r = 8;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        if (!scan.zones) return;
+
+        Object.keys(scan.zones).forEach(function (nom) {
+            const z = scan.zones[nom];
+            const couleur = zoneTerminee(nom) ? '#22c55e' : (z.visible ? '#ea7a12' : '#ef4444');
+            cadre(z, couleur, !z.visible);
+        });
+    }
+
+    // --- Fin du scan ----------------------------------------------------------
+
+    function terminerScan() {
+
+        const infos = {};
+        const douteux = [];
+        CHAMPS.forEach(function (ch) {
+            infos[ch] = scan.retenus[ch] || scan.valeurs[ch] || '';
+            if (!scan.retenus[ch] && scan.valeurs[ch]) douteux.push(ch);
+        });
+
+        const textes = scan.textes.join('\n-----\n');
+
+        if (navigator.vibrate) navigator.vibrate([60, 60, 60]);
+
+        // Image de la caméra gardée comme miniature sur l'écran de vérification.
+        const aImage = imageCamera.width > 0;
+        arreterCamera();
+
+        function suite() {
+            afficherVerification(infos, textes, '', douteux);
+        }
+
+        if (!aImage) { suite(); return; }
+
+        imageCamera.toBlob(function (blob) {
+            if (blob) {
+                if (urlPhoto) URL.revokeObjectURL(urlPhoto);
+                urlPhoto = URL.createObjectURL(blob);
+            }
+            suite();
+        }, 'image/jpeg', 0.85);
+    }
+
+    document.getElementById('btnScanDirect').addEventListener('click', demarrerScan);
+
+    document.getElementById('btnFermerCam').addEventListener('click', function () {
+        afficher('ecranPhoto');
+    });
+
+    document.getElementById('btnValiderCam').addEventListener('click', function () {
+        if (scan) terminerScan();
+    });
+
+    btnLampe.addEventListener('click', function () {
+        if (!flux) return;
+        lampeAllumee = !lampeAllumee;
+        flux.getVideoTracks()[0]
+            .applyConstraints({ advanced: [{ torch: lampeAllumee }] })
+            .then(function () { btnLampe.classList.toggle('actif', lampeAllumee); })
+            .catch(function () { lampeAllumee = false; });
+    });
+
+    // Téléphone verrouillé ou appli changée : on libère la caméra.
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden && scanActif) afficher('ecranPhoto');
+    });
+
+    window.addEventListener('resize', function () {
+        if (scanActif) dessinerCalque();
+    });
 
     // =========================
     // TOUTES LES PRESSES (lecture + suppression sur GitHub)
