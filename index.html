@@ -854,7 +854,7 @@
         for (let y = 0; y < haut; y++) {
             for (let x = 0; x < LARG; x++) {
                 const i = (y * LARG + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
-                if (b > 90 && b - r > 50 && b - g > 30) compte[((y / T) | 0) * gw + ((x / T) | 0)]++;
+                if (b > 70 && b - r > 40 && b - g > 20) compte[((y / T) | 0) * gw + ((x / T) | 0)]++;
             }
         }
 
@@ -1606,7 +1606,7 @@
         return {
             votes: {}, valeurs: {}, retenus: {},
             textes: [], tour: 0,
-            repere: null, zones: null, W: 0, H: 0,
+            repere: null, zones: null, W: 0, H: 0, perdu: 0,
             lecteurPret: false
         };
     }
@@ -1709,7 +1709,15 @@
 
         scan.W = W;
         scan.H = H;
-        scan.repere = trouverRepereBleu(imageCamera, W, H);
+        const trouve = trouverRepereBleu(imageCamera, W, H);
+
+        if (trouve) {
+            scan.repere = trouve;
+            scan.perdu = 0;
+        } else if (scan.repere && ++scan.perdu > 3) {
+            scan.repere = null;          // perdu depuis ~0,5 s : on l'oublie
+        }
+
         scan.zones = scan.repere ? zonesDepuisRepere(scan.repere, W, H) : null;
 
         dessinerCalque();
@@ -1718,11 +1726,10 @@
 
     function conseilCadrage() {
 
-        if (!scan.lecteurPret) return 'Préparation du lecteur…';
         if (!scan.repere) {
             return trouverRepereBleu.tropPres
                 ? 'Trop près : reculez un peu'
-                : 'Visez le grand repère bleu « VL … » de la carte';
+                : 'Placez le « VL » bleu de la carte dans le cadre bleu';
         }
 
         const ratio = (scan.repere.x1 - scan.repere.x0) / scan.W;
@@ -1741,6 +1748,8 @@
             if (c.gauche) return 'Décalez le téléphone vers la gauche';
             if (c.droite) return 'Décalez le téléphone vers la droite';
         }
+
+        if (!scan.lecteurPret) return 'Bien placé ! Préparation du lecteur…';
 
         const nb = CHAMPS.filter(function (ch) { return scan.retenus[ch]; }).length;
         return 'Ne bougez plus… ' + nb + '/4';
@@ -1874,13 +1883,77 @@
             ctx.restore();
         }
 
-        if (!scan.zones) return;
+        if (!scan.zones) {
+            dessinerGabarit(ctx, cw, ch, e, ox, oy);
+            return;
+        }
 
         Object.keys(scan.zones).forEach(function (nom) {
             const z = scan.zones[nom];
             const couleur = zoneTerminee(nom) ? '#22c55e' : (z.visible ? '#ea7a12' : '#ef4444');
             cadre(z, couleur, !z.visible);
         });
+    }
+
+    // Gabarit : la forme attendue de la carte, à l'échelle idéale, au
+    // milieu de la partie libre de l'écran. On y aligne le « VL » bleu.
+    function dessinerGabarit(ctx, cw, ch, e, ox, oy) {
+
+        const haut = document.querySelector('.cam-haut').offsetHeight;
+        const bas = ch - document.querySelector('.cam-bas').offsetHeight;
+        const libre = Math.max(100, bas - haut);
+
+        // Hauteur occupée par les zones : 2,61 × la largeur du VL.
+        const L = Math.min(0.5 * cw, (libre - 16) / 2.7);
+        const x0 = cw / 2 - 0.3 * L;
+        const y0 = haut + libre / 2 + 1.095 * L;
+
+        // Faux repère, ramené aux coordonnées de la vidéo, pour réutiliser
+        // exactement le calcul des zones.
+        const repere = {
+            x0: (x0 - ox) / e, x1: (x0 + L - ox) / e,
+            y0: (y0 - oy) / e, y1: (y0 + 0.21 * L - oy) / e
+        };
+        const zones = zonesDepuisRepere(repere, scan.W, scan.H);
+
+        function rect(z, couleur, epais, tirets) {
+            const x = ox + z.x * e, y = oy + z.y * e, w = z.w * e, h = z.h * e;
+            ctx.save();
+            ctx.strokeStyle = couleur;
+            ctx.lineWidth = epais;
+            ctx.setLineDash(tirets);
+            ctx.shadowColor = 'rgba(0, 0, 0, .6)';
+            ctx.shadowBlur = 4;
+            ctx.beginPath();
+            ctx.roundRect ? ctx.roundRect(x, y, w, h, 8) : ctx.rect(x, y, w, h);
+            ctx.stroke();
+            ctx.restore();
+            return { x: x, y: y, w: w, h: h };
+        }
+
+        function etiquette(texte, x, y, couleur) {
+            ctx.save();
+            ctx.font = '600 12px system-ui, sans-serif';
+            ctx.fillStyle = couleur;
+            ctx.shadowColor = 'rgba(0, 0, 0, .8)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(texte, x + 4, y - 6);
+            ctx.restore();
+        }
+
+        const blanc = 'rgba(255, 255, 255, .75)';
+
+        const s = rect(zones.spec, blanc, 2, [6, 6]);
+        etiquette('Specification Code', s.x, s.y, blanc);
+
+        const b = rect(zones.bladder, blanc, 2, [6, 6]);
+        etiquette('BladderCode / Type', b.x, b.y, blanc);
+
+        // Cible du VL : bleu, plus épais, légèrement animé.
+        const pulse = 0.55 + 0.45 * Math.abs(Math.sin(Date.now() / 400));
+        const v = rect({ x: repere.x0, y: repere.y0, w: repere.x1 - repere.x0, h: repere.y1 - repere.y0 },
+            'rgba(100, 166, 240, ' + pulse.toFixed(2) + ')', 4, []);
+        etiquette('VL bleu ici', v.x, v.y, '#9cc7f5');
     }
 
     // --- Fin du scan ----------------------------------------------------------
