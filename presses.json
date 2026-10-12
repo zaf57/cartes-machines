@@ -1,5 +1,24 @@
 {
-  "maj": "2026-10-07T01:21:57.791Z",
-  "presses": {},
-  "historique": []
+  "maj": "2026-10-12T17:51:15.051Z",
+  "presses": {
+    "VL402G": {
+      "presse": "VL 402 G",
+      "spec": "138582",
+      "bladderCode": "5036",
+      "bladderType": "TU4",
+      "bladderDate": "2526",
+      "date": "2026-10-12T17:51:15.051Z"
+    }
+  },
+  "historique": [
+    {
+      "cle": "VL402G",
+      "presse": "VL 402 G",
+      "spec": "138582",
+      "bladderCode": "5036",
+      "bladderType": "TU4",
+      "bladderDate": "2526",
+      "date": "2026-10-12T17:51:15.051Z"
+    }
+  ]
 }
